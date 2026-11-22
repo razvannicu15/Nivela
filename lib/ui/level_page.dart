@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../core/i18n.dart';
@@ -236,12 +238,13 @@ class _HeroCard extends StatelessWidget {
     return LayoutBuilder(builder: (context, box) {
       switch (mode) {
         case Mode.level:
-          final vh = (box.maxWidth * 0.26).clamp(70.0, 120.0);
+          final vh = math.min((box.maxWidth * 0.26).clamp(70.0, 120.0), box.maxHeight * 0.3);
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              value,
-              SizedBox(height: vh * 0.45),
+            child: Column(children: [
+              const Spacer(flex: 3),
+              FittedBox(fit: BoxFit.scaleDown, child: value),
+              const Spacer(flex: 2),
               SizedBox(
                 height: vh,
                 width: double.infinity,
@@ -250,7 +253,7 @@ class _HeroCard extends StatelessWidget {
                     builder: (c, v) =>
                         CustomPaint(painter: VialPainter(angle: v[0], cs: cs, accent: accent, tolerance: store.tolerance))),
               ),
-              SizedBox(height: vh * 0.45 + 30),
+              const Spacer(flex: 4),
             ]),
           );
         case Mode.plumb:
