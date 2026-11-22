@@ -236,7 +236,7 @@ class _HeroCard extends StatelessWidget {
                 ? Row(children: [
                     Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [values, if (status != null) ...[const SizedBox(height: 10), Text(status, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.primary))]])),
                     const SizedBox(width: 16),
-                    SizedBox(width: box.maxHeight - 40, child: crossW),
+                    SizedBox(width: box.maxHeight - 40, height: double.infinity, child: crossW),
                   ])
                 : Column(children: [
                     values,
