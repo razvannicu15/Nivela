@@ -28,26 +28,27 @@ class VialPainter extends CustomPainter {
     final tube = RRect.fromRectAndRadius(rect, Radius.circular(h / 2));
     canvas.drawRRect(tube, Paint()..color = cs.surface);
     canvas.drawRRect(tube, Paint()..color = accent.withValues(alpha: 0.16));
-    canvas.drawRRect(tube, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.5..color = accent.withValues(alpha: 0.45));
+    canvas.drawRRect(tube, Paint()..style = PaintingStyle.stroke..strokeWidth = 2..color = accent.withValues(alpha: 0.45));
 
-    final bw = size.width * 0.24, bh = h - 14;
-    final travel = size.width / 2 - bw / 2 - 7;
+    final pad = h * 0.14;
+    final bw = size.width * 0.24, bh = h - 2 * pad;
+    final travel = size.width / 2 - bw / 2 - pad;
     final cx = size.width / 2;
     final tol = bw / 2 + 4 + travel * bubbleOffset(tolerance, scale: vialScale).abs();
-    final mark = Paint()..color = cs.onSurface.withValues(alpha: 0.7)..strokeWidth = 2.2..strokeCap = StrokeCap.round;
+    final mark = Paint()..color = cs.onSurface.withValues(alpha: 0.7)..strokeWidth = 3..strokeCap = StrokeCap.round;
     final minor = Paint()..color = cs.onSurface.withValues(alpha: 0.28)..strokeWidth = 1.4..strokeCap = StrokeCap.round;
     for (final s in [-1.0, 1.0]) {
-      canvas.drawLine(Offset(cx + s * tol, 7), Offset(cx + s * tol, h - 7), mark);
+      canvas.drawLine(Offset(cx + s * tol, pad), Offset(cx + s * tol, h - pad), mark);
       for (final d in [2.0, 5.0]) {
         final x = cx + s * (bw / 2 + 4 + travel * bubbleOffset(d, scale: vialScale));
-        canvas.drawLine(Offset(x, 9), Offset(x, 16), minor);
-        canvas.drawLine(Offset(x, h - 16), Offset(x, h - 9), minor);
+        canvas.drawLine(Offset(x, pad), Offset(x, pad + h * 0.16), minor);
+        canvas.drawLine(Offset(x, h - pad - h * 0.16), Offset(x, h - pad), minor);
       }
     }
     final bx = cx - bubbleOffset(angle, scale: vialScale) * travel;
     final b = RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(bx, h / 2), width: bw, height: bh), Radius.circular(bh / 2));
     canvas.drawRRect(b, Paint()..color = Colors.white);
-    canvas.drawRRect(b, Paint()..style = PaintingStyle.stroke..strokeWidth = 2..color = accent);
+    canvas.drawRRect(b, Paint()..style = PaintingStyle.stroke..strokeWidth = 2.5..color = accent);
     canvas.drawRRect(
         RRect.fromRectAndRadius(Rect.fromLTWH(b.left + bw * 0.22, b.top + bh * 0.2, bw * 0.4, bh * 0.16), Radius.circular(bh * 0.08)),
         Paint()..color = accent.withValues(alpha: 0.18));
