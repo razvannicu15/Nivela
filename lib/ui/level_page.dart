@@ -20,7 +20,7 @@ class LevelPage extends StatefulWidget {
 }
 
 class _LevelPageState extends State<LevelPage> {
-  late final Meter meter = Meter(store.lastMode)..start();
+  late final Meter meter = Meter(store.lastMode == Mode.flat ? Mode.flat : Mode.level)..start();
   DateTime? _wrongSince;
 
   @override
@@ -67,17 +67,6 @@ class _LevelPageState extends State<LevelPage> {
     store.save();
   }
 
-  void _save() {
-    final m = meter.toMeasurement();
-    store.addMeasurement(m);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(tr('Salvat: ${measurementValue(m)}', 'Saved: ${measurementValue(m)}')),
-        duration: const Duration(seconds: 2),
-      ));
-  }
-
   Future<void> _calibrate(Face? f) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => CalibrationPage(start: f)));
 
@@ -93,61 +82,20 @@ class _LevelPageState extends State<LevelPage> {
             title: Text(tr('Nivelă', 'Level')),
             actions: [
               if (meter.mode != Mode.flat) _EdgeMenu(meter: meter),
-              PopupMenuButton<String>(
-                tooltip: tr('Mai multe', 'More'),
-                onSelected: (v) {
-                  switch (v) {
-                    case 'lock':
-                      meter.lockPressed();
-                    case 'zero':
-                      meter.toggleRelative();
-                    case 'save':
-                      _save();
-                    case 'cal':
-                      _calibrate(store.profile.has(r.face) ? null : r.face);
-                  }
-                },
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'lock',
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(meter.lockState == MeterLock.live ? Icons.lock_outline : Icons.lock_open),
-                      title: Text(meter.lockState == MeterLock.live ? tr('Blochează citirea', 'Lock reading') : tr('Deblochează', 'Unlock')),
-                      subtitle: meter.lockState == MeterLock.live ? Text(tr('sau apasă lung pe nivelă', 'or long-press the level')) : null,
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'zero',
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.exposure_zero),
-                      title: Text(meter.relative ? tr('Revino la absolut', 'Back to absolute') : tr('Zero aici (relativ)', 'Zero here (relative)')),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'save',
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.bookmark_add_outlined),
-                      title: Text(tr('Salvează măsurarea', 'Save measurement')),
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: 'cal',
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Badge(isLabelVisible: !store.profile.has(r.face), smallSize: 8, child: const Icon(Icons.tune)),
-                      title: Text(tr('Calibrare', 'Calibration')),
-                    ),
-                  ),
-                ],
+              IconButton(
+                tooltip: meter.relative ? tr('Revino la absolut', 'Back to absolute') : tr('Zero aici (relativ)', 'Zero here (relative)'),
+                isSelected: meter.relative,
+                icon: const Icon(Icons.exposure_zero),
+                onPressed: meter.toggleRelative,
+              ),
+              IconButton(
+                tooltip: tr('Calibrare', 'Calibration'),
                 icon: Badge(
                   isLabelVisible: !store.profile.has(r.face) || Sensor.instance.lowAccuracy,
                   smallSize: 9,
-                  child: const Icon(Icons.more_vert),
+                  child: const Icon(Icons.tune),
                 ),
+                onPressed: () => _calibrate(store.profile.has(r.face) ? null : r.face),
               ),
             ],
           ),
@@ -158,7 +106,7 @@ class _LevelPageState extends State<LevelPage> {
                 width: double.infinity,
                 child: SegmentedButton<Mode>(
                   showSelectedIcon: false,
-                  segments: [for (final m in Mode.values) ButtonSegment(value: m, label: Text(m.label))],
+                  segments: [for (final m in const [Mode.level, Mode.flat]) ButtonSegment(value: m, label: Text(m.label))],
                   selected: {meter.mode},
                   onSelectionChanged: (s) => _setMode(s.first),
                 ),
@@ -170,7 +118,7 @@ class _LevelPageState extends State<LevelPage> {
                 child: _HeroCard(meter: meter, reading: r, level: level),
               ),
             ),
-            if (!r.positionOk && !meter.locked && (meter.mode == Mode.plumb || !store.autoMode))
+            if (!r.positionOk && !store.autoMode)
               _PositionHint(mode: meter.mode, onSwitch: _setMode),
             const SizedBox(height: 16),
           ]),
@@ -186,21 +134,6 @@ class _EdgeMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (meter.mode == Mode.plumb) {
-      return PopupMenuButton<bool>(
-        tooltip: tr('Muchia pe perete', 'Edge on the wall'),
-        icon: Icon(store.plumbOnLeft ? Icons.border_left : Icons.border_right),
-        initialValue: store.plumbOnLeft,
-        onSelected: (v) {
-          store.plumbOnLeft = v;
-          store.save();
-        },
-        itemBuilder: (_) => [
-          PopupMenuItem(value: true, child: Text(tr('Muchia stângă pe perete', 'Left edge on the wall'))),
-          PopupMenuItem(value: false, child: Text(tr('Muchia dreaptă pe perete', 'Right edge on the wall'))),
-        ],
-      );
-    }
     return PopupMenuButton<Edge?>(
       tooltip: tr('Muchia de referință', 'Reference edge'),
       icon: Icon(store.autoEdge ? Icons.screen_rotation_alt : Icons.border_bottom),
@@ -232,7 +165,6 @@ class _HeroCard extends StatelessWidget {
     final bg = Color.alphaBlend((level ? alertColor().withValues(alpha: 0.16) : cs.primaryContainer.withValues(alpha: 0.55)), cs.surface);
     final card = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onLongPress: meter.lockPressed,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(28)),
@@ -254,15 +186,9 @@ class _HeroCard extends StatelessWidget {
     final target = mode == Mode.flat ? flat.total : (ok ? reading.angle : 0.0);
     final shown = meter.stable(mode.name, target);
 
-    final status = switch (meter.lockState) {
-      MeterLock.armedStill => tr('Ține nemișcat…', 'Hold still…'),
-      MeterLock.countdown => tr('Blochez în ${meter.secondsLeft} s', 'Locking in ${meter.secondsLeft} s'),
-      MeterLock.locked => tr('Blocat · apasă lung ca să deblochezi', 'Locked · long-press to unlock'),
-      MeterLock.live => meter.relative ? tr('Relativ la zero', 'Relative to zero') : null,
-    };
+    final status = meter.relative ? tr('Relativ la zero', 'Relative to zero') : null;
     final value = Column(mainAxisSize: MainAxisSize.min, children: [
       Row(mainAxisSize: MainAxisSize.min, children: [
-        if (meter.locked) ...[Icon(Icons.lock, color: cs.primary, size: 26), const SizedBox(width: 8)],
         Readout(shown, dash: !ok, abs: true, size: mode == Mode.level ? 64 : 52, color: level ? accent : cs.onSurface),
       ]),
       if (status != null) ...[
@@ -273,7 +199,7 @@ class _HeroCard extends StatelessWidget {
 
     return LayoutBuilder(builder: (context, box) {
       switch (mode) {
-        case Mode.level:
+        case Mode.level || Mode.plumb:
           final vh = math.min((box.maxWidth * 0.26).clamp(70.0, 120.0), box.maxHeight * 0.3);
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -290,24 +216,6 @@ class _HeroCard extends StatelessWidget {
                         CustomPaint(painter: VialPainter(angle: v[0], cs: cs, accent: accent, tolerance: store.tolerance))),
               ),
               const Spacer(flex: 4),
-            ]),
-          );
-        case Mode.plumb:
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            child: Column(children: [
-              Expanded(
-                child: SizedBox.expand(
-                  child: Smoothed(
-                    values: [target],
-                    builder: (c, v) => CustomPaint(
-                        painter: PlumbPainter(
-                            angle: v[0], cs: cs, accent: accent, contactLeft: reading.contact == reading.edge.displayLeft)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              value,
             ]),
           );
         case Mode.flat:

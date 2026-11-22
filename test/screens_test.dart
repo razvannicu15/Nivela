@@ -93,27 +93,19 @@ void main() {
       await shot(t, '${pre}01_level', shell);
       store.lastMode = Mode.flat;
       await shot(t, '${pre}02_flat', shell, v: vecForFlat(1.2, -0.7));
-      store.lastMode = Mode.plumb;
-      await shot(t, '${pre}03_plumb', shell, v: vecForEdge(Edge.bottom, -2.2, forward: 4));
       if (lang == 'en') return;
       store.lastMode = Mode.level;
       await shot(t, '04_level_ok_dark', shell, b: Brightness.dark, v: vecForEdge(Edge.bottom, 0.1));
       await shot(t, '05_level_landscape', shell, v: vecForEdge(Edge.right, -3.4));
       store.lastMode = Mode.flat;
       await shot(t, '06_flat_dark', shell, b: Brightness.dark, v: vecForFlat(0.1, 0.05));
-      store.lastMode = Mode.plumb;
-      await shot(t, '07_plumb_dark', shell, b: Brightness.dark, v: vecForEdge(Edge.bottom, 0.9));
       await shot(t, '08_camera', const HomeShell(cameraPreview: false, initialTab: 1), v: vecForEdge(Edge.bottom, 4.5, forward: 3));
-      await shot(t, '09_saved', const HomeShell(cameraPreview: false, initialTab: 2));
-      await shot(t, '10_saved_dark', const HomeShell(cameraPreview: false, initialTab: 2), b: Brightness.dark);
-      await shot(t, '11_settings', const HomeShell(cameraPreview: false, initialTab: 3));
-      await shot(t, '12_settings_dark', const HomeShell(cameraPreview: false, initialTab: 3), b: Brightness.dark);
+      await shot(t, '11_settings', const HomeShell(cameraPreview: false, initialTab: 2));
+      await shot(t, '12_settings_dark', const HomeShell(cameraPreview: false, initialTab: 2), b: Brightness.dark);
       await shot(t, '13_calibration', const CalibrationPage());
       await shot(t, '14_wizard', const CalibrationWizard(faces: [Face.bottom, Face.back]), v: vecForFlat(0, 0));
       store.lastMode = Mode.level;
       await shot(t, '15_level_lying', shell, v: vecForFlat(0.5, 0.5));
-      store.measurements.clear();
-      await shot(t, '16_saved_empty', const HomeShell(cameraPreview: false, initialTab: 2));
     }, skip: skip);
   }
 }

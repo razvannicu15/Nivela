@@ -4,7 +4,6 @@ import '../core/i18n.dart';
 import '../services/store.dart';
 import 'camera_page.dart';
 import 'level_page.dart';
-import 'saved_page.dart';
 import 'settings_page.dart';
 
 class HomeShell extends StatefulWidget {
@@ -26,7 +25,6 @@ class _HomeShellState extends State<HomeShell> {
     final page = switch (_tab) {
       0 => const LevelPage(),
       1 => CameraPage(usePreview: widget.cameraPreview),
-      2 => SavedPage(onMeasure: () => setState(() => _tab = 0)),
       _ => const SettingsPage(),
     };
     return Scaffold(
@@ -45,14 +43,6 @@ class _HomeShellState extends State<HomeShell> {
               icon: const Icon(Icons.photo_camera_outlined),
               selectedIcon: const Icon(Icons.photo_camera),
               label: tr('Cameră', 'Camera')),
-          NavigationDestination(
-              icon: Badge(
-                isLabelVisible: store.measurements.isNotEmpty,
-                label: Text('${store.measurements.length}'),
-                child: const Icon(Icons.bookmarks_outlined),
-              ),
-              selectedIcon: const Icon(Icons.bookmarks),
-              label: tr('Salvate', 'Saved')),
           NavigationDestination(
               icon: const Icon(Icons.settings_outlined),
               selectedIcon: const Icon(Icons.settings),

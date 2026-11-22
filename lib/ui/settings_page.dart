@@ -87,15 +87,9 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ),
-          ListTile(
-            title: Text(tr('Culoare temă', 'Theme colour')),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Wrap(spacing: 10, runSpacing: 10, children: [
-                for (final c in themeColors)
-                  ColorDot(Color(c), selected: store.seed == c, onTap: () => _set(() => store.seed = c)),
-              ]),
-            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+            child: ColorRow(colors: themeColors, selected: store.seed, onSelect: (c) => _set(() => store.seed = c)),
           ),
           SectionTitle(tr('Afișare', 'Display')),
           ListTile(
@@ -145,15 +139,10 @@ class _SettingsPageState extends State<SettingsPage> {
             trailing: Text('±${fmtNumber(store.tolerance, 1)}°',
                 style: const TextStyle(fontWeight: FontWeight.w700, fontFeatures: [FontFeature.tabularFigures()])),
           ),
-          ListTile(
-            title: Text(tr('Culoare alertă', 'Alert colour')),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Wrap(spacing: 10, runSpacing: 10, children: [
-                for (final c in alertColors)
-                  ColorDot(Color(c), selected: store.alertColor == c, onTap: () => _set(() => store.alertColor = c)),
-              ]),
-            ),
+          ListTile(title: Text(tr('Culoare alertă', 'Alert colour')), contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 0)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: ColorRow(colors: alertColors, selected: store.alertColor, onSelect: (c) => _set(() => store.alertColor = c)),
           ),
           SwitchListTile(
             secondary: const Icon(Icons.vibration),
@@ -174,7 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
           SwitchListTile(
             secondary: const Icon(Icons.rotate_90_degrees_ccw),
             title: Text(tr('Alertă la multipli de 45°', 'Alert at multiples of 45°')),
-            subtitle: Text(tr('Nivel și Plumb: și la 45°, 90°, 135°…', 'Level and Plumb: also at 45°, 90°, 135°…')),
+            subtitle: Text(tr('Și la 45°, 90°, 135°…', 'Also at 45°, 90°, 135°…')),
             value: store.every45,
             onChanged: (v) => _set(() => store.every45 = v),
           ),
@@ -194,15 +183,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 : tr('Fixă: ${store.levelEdge.label}', 'Fixed: ${store.levelEdge.label}')),
             value: store.autoEdge,
             onChanged: (v) => _set(() => store.autoEdge = v),
-          ),
-          ListTile(
-            leading: const Icon(Icons.lock_clock_outlined),
-            title: Text(tr('Blocare automată', 'Auto lock')),
-            subtitle: Text(store.autoLock.label),
-            onTap: () async {
-              final v = await _pick(tr('Blocare automată', 'Auto lock'), [for (final a in AutoLock.values) (a, a.label)], store.autoLock);
-              if (v != null) _set(() => store.autoLock = v);
-            },
           ),
           ListTile(
             leading: const Icon(Icons.waves),

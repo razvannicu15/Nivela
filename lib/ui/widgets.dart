@@ -118,27 +118,43 @@ class InfoRow extends StatelessWidget {
   }
 }
 
-class ColorDot extends StatelessWidget {
-  const ColorDot(this.color, {super.key, required this.selected, required this.onTap});
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
+/// One even row of colour swatches, filling the width.
+class ColorRow extends StatelessWidget {
+  const ColorRow({super.key, required this.colors, required this.selected, required this.onSelect});
+  final List<int> colors;
+  final int selected;
+  final ValueChanged<int> onSelect;
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(color: selected ? cs.onSurface : Colors.transparent, width: 2.5),
-        ),
-        child: selected ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
-      ),
-    );
+    return LayoutBuilder(builder: (context, box) {
+      final n = colors.length;
+      final size = ((box.maxWidth - (n - 1) * 12) / n).clamp(28.0, 46.0);
+      return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        for (final c in colors)
+          Semantics(
+            button: true,
+            selected: c == selected,
+            child: GestureDetector(
+              onTap: () => onSelect(c),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: size,
+                height: size,
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: c == selected ? cs.onSurface : Colors.transparent, width: 2.5),
+                ),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: Color(c), shape: BoxShape.circle),
+                  child: c == selected ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
+                ),
+              ),
+            ),
+          ),
+      ]);
+    });
   }
 }

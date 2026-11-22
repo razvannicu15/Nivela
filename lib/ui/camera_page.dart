@@ -186,8 +186,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
             final level = meter.isLevel(r) && Sensor.instance.hasData;
             return GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onLongPress: meter.toggleLock,
-              child: RotatedBox(
+                      child: RotatedBox(
                 quarterTurns: r.edge.quarterTurns,
                 child: Stack(fit: StackFit.expand, children: [
                   Smoothed(
@@ -233,31 +232,6 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                 listenable: meter,
                 builder: (context, _) => Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   _RoundButton(icon: Icons.grid_on, label: tr('Ghidaje', 'Guides'), onTap: _guides),
-                  const SizedBox(width: 18),
-                  _RoundButton(
-                    icon: meter.locked ? Icons.lock : (meter.lockState == MeterLock.live ? Icons.lock_open : Icons.timer_outlined),
-                    label: meter.lockState == MeterLock.countdown
-                        ? '${meter.secondsLeft} s'
-                        : (meter.locked ? tr('Blocat', 'Locked') : tr('Blochează', 'Lock')),
-                    onTap: meter.lockPressed,
-                    big: true,
-                    active: meter.lockState != MeterLock.live,
-                  ),
-                  const SizedBox(width: 18),
-                  _RoundButton(
-                    icon: Icons.bookmark_add_outlined,
-                    label: tr('Salvează', 'Save'),
-                    onTap: () {
-                      final m = meter.toMeasurement();
-                      store.addMeasurement(Measurement(
-                          id: m.id, time: m.time, mode: Mode.level, angle: m.angle, unit: m.unit, where: tr('Cameră', 'Camera')));
-                      ScaffoldMessenger.of(context)
-                        ..hideCurrentSnackBar()
-                        ..showSnackBar(SnackBar(
-                            content: Text(tr('Salvat: ${measurementValue(m)}', 'Saved: ${measurementValue(m)}')),
-                            duration: const Duration(seconds: 2)));
-                    },
-                  ),
                 ]),
               ),
             ),

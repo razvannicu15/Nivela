@@ -22,7 +22,7 @@ extension AutoLockX on AutoLock {
 }
 
 /// Theme colours offered in Settings (no pink unless asked for).
-const themeColors = <int>[0xFF2B5CE6, 0xFF0E7C66, 0xFF3F51B5, 0xFF6750A4, 0xFF00838F, 0xFFE65100, 0xFFB3261E, 0xFF5D6B7A];
+const themeColors = <int>[0xFF2B5CE6, 0xFF0E7C66, 0xFF6750A4, 0xFF00838F, 0xFFE65100, 0xFFB3261E];
 const alertColors = <int>[0xFF1DB954, 0xFF2B8CFF, 0xFFFFC107, 0xFFFF7A1A, 0xFF9C5CFF, 0xFF00BFA5];
 
 /// Settings, calibration profiles and saved measurements, in one JSON file.
