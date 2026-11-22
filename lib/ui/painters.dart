@@ -206,6 +206,7 @@ class AttitudePainter extends CustomPainter {
 
     // Inner shadow and glass shine.
     canvas.drawCircle(c, r, Paint()..style = PaintingStyle.stroke..strokeWidth = 6..color = Colors.black.withValues(alpha: 0.12)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+    if (!dark) {
     canvas.save();
     canvas.clipPath(Path()..addOval(win));
     canvas.drawOval(
@@ -217,6 +218,7 @@ class AttitudePainter extends CustomPainter {
             colors: [Colors.white.withValues(alpha: dark ? 0.12 : 0.4), Colors.white.withValues(alpha: 0)],
           ).createShader(win));
     canvas.restore();
+    }
     canvas.drawCircle(c, r, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = Colors.black.withValues(alpha: 0.25));
 
     // Fixed device marks: index at the top and the "wings".
