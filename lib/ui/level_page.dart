@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../core/i18n.dart';
@@ -200,23 +198,52 @@ class _HeroCard extends StatelessWidget {
     return LayoutBuilder(builder: (context, box) {
       switch (mode) {
         case Mode.level || Mode.plumb:
-          final vh = math.min((box.maxWidth * 0.26).clamp(70.0, 120.0), box.maxHeight * 0.3);
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(children: [
-              const Spacer(flex: 3),
-              FittedBox(fit: BoxFit.scaleDown, child: value),
-              const Spacer(flex: 2),
-              SizedBox(
-                height: vh,
-                width: double.infinity,
-                child: Smoothed(
-                    values: [target],
-                    builder: (c, v) =>
-                        CustomPaint(painter: VialPainter(angle: v[0], cs: cs, accent: accent, tolerance: store.tolerance))),
+          final pitch = ok ? reading.pitch : 0.0;
+          final shownPitch = meter.stable('pitch', pitch);
+          final tol = store.tolerance;
+          final rollOk = ok && target.abs() <= tol, pitchOk = ok && pitch.abs() <= tol;
+          final a = alertColor();
+          Widget cell(String label, double v, bool good) => Column(mainAxisSize: MainAxisSize.min, children: [
+                Text(label,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w800, letterSpacing: 0.8, color: cs.onSurfaceVariant)),
+                const SizedBox(height: 2),
+                FittedBox(fit: BoxFit.scaleDown, child: Readout(v, dash: !ok, abs: true, size: 46, color: good ? a : cs.onSurface)),
+              ]);
+          final values = Row(children: [
+            Expanded(child: cell(tr('ORIZONTAL', 'HORIZONTAL'), meter.stable('level', target), rollOk)),
+            Container(width: 1, height: 44, color: cs.outlineVariant),
+            Expanded(child: cell(tr('VERTICAL', 'VERTICAL'), shownPitch, pitchOk)),
+          ]);
+          final crossW = Smoothed(
+            values: [target, pitch],
+            builder: (c, v) => CustomPaint(
+              painter: CrossVialPainter(
+                roll: v[0],
+                pitch: v[1],
+                cs: cs,
+                accent: accent,
+                rollColor: rollOk ? a : cs.primary,
+                pitchColor: pitchOk ? a : cs.primary,
+                tolerance: tol,
               ),
-              const Spacer(flex: 4),
-            ]),
+            ),
+          );
+          final wide = box.maxWidth > box.maxHeight * 1.15;
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            child: wide
+                ? Row(children: [
+                    Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [values, if (status != null) ...[const SizedBox(height: 10), Text(status, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.primary))]])),
+                    const SizedBox(width: 16),
+                    SizedBox(width: box.maxHeight - 40, child: crossW),
+                  ])
+                : Column(children: [
+                    values,
+                    if (status != null) ...[const SizedBox(height: 8), Text(status, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.primary))],
+                    const SizedBox(height: 20),
+                    Expanded(child: SizedBox.expand(child: crossW)),
+                  ]),
           );
         case Mode.flat:
           return Padding(

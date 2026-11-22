@@ -20,6 +20,7 @@ class Reading {
     this.flat,
     this.contact,
     this.forward = 0,
+    this.pitch = 0,
   });
 
   final Mode mode;
@@ -44,10 +45,14 @@ class Reading {
   /// Forward/backward tilt out of the screen plane (camera mode).
   final double forward;
 
+  /// Level mode, calibrated: how far the phone's back plane is from vertical
+  /// (+ = screen tilts up). With the back on a wall: is the wall plumb?
+  final double pitch;
+
   double get primary => flat?.total ?? angle;
 }
 
-Reading compute(Vec3 a, Mode mode, {double? zeroAngle, FlatTilt? zeroFlat, Edge? sticky}) {
+Reading compute(Vec3 a, Mode mode, {double? zeroAngle, double? zeroPitch, FlatTilt? zeroFlat, Edge? sticky}) {
   final p = store.profile;
   final up = uprightness(a);
   switch (mode) {
@@ -55,8 +60,10 @@ Reading compute(Vec3 a, Mode mode, {double? zeroAngle, FlatTilt? zeroFlat, Edge?
       final e = !store.autoEdge ? store.levelEdge : (up > 0.5 ? stickyDownEdge(a, sticky) : sticky ?? Edge.bottom);
       var dev = fromTarget(edgeAngle(a, e) - p.edge(e), every45: store.every45);
       if (zeroAngle != null) dev -= zeroAngle;
+      var pitch = _forward(a) - (p.has(Face.back) ? p.flat(Face.back).y : 0);
+      if (zeroPitch != null) pitch -= zeroPitch;
       return Reading(mode: mode, angle: dev, edge: e, face: faceOf(e), positionOk: up > 0.5,
-          forward: _forward(a));
+          forward: _forward(a), pitch: pitch);
     case Mode.plumb:
       final down = up > 0.5 ? stickyDownEdge(a, sticky) : sticky ?? Edge.bottom;
       final c = store.plumbOnLeft ? down.displayLeft : down.displayRight;
@@ -96,6 +103,7 @@ class Meter extends ChangeNotifier {
   }
 
   final Map<Mode, double> _zeroAngle = {};
+  double? _zeroPitch;
   final Map<Mode, FlatTilt> _zeroFlat = {};
   bool get relative => _mode == Mode.flat ? _zeroFlat.containsKey(_mode) : _zeroAngle.containsKey(_mode);
 
@@ -117,7 +125,7 @@ class Meter extends ChangeNotifier {
   Reading get reading => _locked ?? live;
   Edge? _sticky;
   Reading get live => compute(Sensor.instance.value, _mode,
-      zeroAngle: _zeroAngle[_mode], zeroFlat: _zeroFlat[_mode], sticky: _sticky);
+      zeroAngle: _zeroAngle[_mode], zeroPitch: _mode == Mode.level ? _zeroPitch : null, zeroFlat: _zeroFlat[_mode], sticky: _sticky);
 
   final Map<String, double> _shown = {};
 
@@ -236,6 +244,7 @@ class Meter extends ChangeNotifier {
   void toggleRelative() {
     if (relative) {
       _zeroAngle.remove(_mode);
+      if (_mode == Mode.level) _zeroPitch = null;
       _zeroFlat.remove(_mode);
     } else {
       final r = compute(Sensor.instance.value, _mode, sticky: _sticky);
@@ -243,6 +252,7 @@ class Meter extends ChangeNotifier {
         _zeroFlat[_mode] = r.flat!;
       } else {
         _zeroAngle[_mode] = r.angle;
+        if (_mode == Mode.level) _zeroPitch = r.pitch;
       }
     }
     if (locked) unlock(silent: true);

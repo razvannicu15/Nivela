@@ -229,6 +229,75 @@ class FlatPainter extends CustomPainter {
       o.tilt.x != tilt.x || o.tilt.y != tilt.y || o.cs != cs || o.accent != accent || o.tolerance != tolerance;
 }
 
+/// Two vials in a cross: the horizontal arm is left/right level, the vertical
+/// arm is the out-of-plane tilt (back of the phone against a wall).
+class CrossVialPainter extends CustomPainter {
+  CrossVialPainter({
+    required this.roll,
+    required this.pitch,
+    required this.cs,
+    required this.accent,
+    required this.rollColor,
+    required this.pitchColor,
+    required this.tolerance,
+  });
+  final double roll, pitch, tolerance;
+  final ColorScheme cs;
+  final Color accent, rollColor, pitchColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final t = (math.min(size.width, size.height) * 0.2).clamp(52.0, 84.0);
+    final hLen = size.width;
+    final vLen = math.min(size.height, size.width * 1.15);
+    final hr = RRect.fromRectAndRadius(Rect.fromCenter(center: c, width: hLen, height: t), Radius.circular(t / 2));
+    final vr = RRect.fromRectAndRadius(Rect.fromCenter(center: c, width: t, height: vLen), Radius.circular(t / 2));
+    final cross = Path.combine(PathOperation.union, Path()..addRRect(hr), Path()..addRRect(vr));
+
+    canvas.drawPath(cross, Paint()..color = cs.surface);
+    canvas.drawPath(cross, Paint()..color = accent.withValues(alpha: 0.16));
+    canvas.drawPath(cross, Paint()..style = PaintingStyle.stroke..strokeWidth = 2..color = accent.withValues(alpha: 0.45));
+
+    final pad = t * 0.14;
+    final bl = t * 1.35, bt = t - 2 * pad; // bubble length / thickness
+    final hTravel = hLen / 2 - bl / 2 - pad;
+    final vTravel = vLen / 2 - bl / 2 - pad;
+    final mark = Paint()..color = cs.onSurface.withValues(alpha: 0.7)..strokeWidth = 3..strokeCap = StrokeCap.round;
+    final minor = Paint()..color = cs.onSurface.withValues(alpha: 0.28)..strokeWidth = 1.4..strokeCap = StrokeCap.round;
+    for (final s in [-1.0, 1.0]) {
+      final hx = c.dx + s * (bl / 2 + 4 + hTravel * bubbleOffset(tolerance, scale: vialScale).abs());
+      canvas.drawLine(Offset(hx, c.dy - t / 2 + pad), Offset(hx, c.dy + t / 2 - pad), mark);
+      final vy = c.dy + s * (bl / 2 + 4 + vTravel * bubbleOffset(tolerance, scale: vialScale).abs());
+      canvas.drawLine(Offset(c.dx - t / 2 + pad, vy), Offset(c.dx + t / 2 - pad, vy), mark);
+      for (final d in [2.0, 5.0]) {
+        final x = c.dx + s * (bl / 2 + 4 + hTravel * bubbleOffset(d, scale: vialScale));
+        canvas.drawLine(Offset(x, c.dy - t / 2 + pad), Offset(x, c.dy - t / 2 + pad + t * 0.16), minor);
+        canvas.drawLine(Offset(x, c.dy + t / 2 - pad - t * 0.16), Offset(x, c.dy + t / 2 - pad), minor);
+        final y = c.dy + s * (bl / 2 + 4 + vTravel * bubbleOffset(d, scale: vialScale));
+        canvas.drawLine(Offset(c.dx - t / 2 + pad, y), Offset(c.dx - t / 2 + pad + t * 0.16, y), minor);
+        canvas.drawLine(Offset(c.dx + t / 2 - pad - t * 0.16, y), Offset(c.dx + t / 2 - pad, y), minor);
+      }
+    }
+
+    void bubble(Rect r, Color border) {
+      final rr = RRect.fromRectAndRadius(r, Radius.circular(math.min(r.width, r.height) / 2));
+      canvas.drawRRect(rr, Paint()..color = Colors.white);
+      canvas.drawRRect(rr, Paint()..style = PaintingStyle.stroke..strokeWidth = 2.5..color = border);
+    }
+
+    // Vertical bubble rises when the screen tilts up; horizontal goes to the high end.
+    final vy = c.dy - bubbleOffset(pitch, scale: vialScale) * vTravel;
+    bubble(Rect.fromCenter(center: Offset(c.dx, vy), width: bt, height: bl), pitchColor);
+    final hx = c.dx - bubbleOffset(roll, scale: vialScale) * hTravel;
+    bubble(Rect.fromCenter(center: Offset(hx, c.dy), width: bl, height: bt), rollColor);
+  }
+
+  @override
+  bool shouldRepaint(CrossVialPainter o) =>
+      o.roll != roll || o.pitch != pitch || o.cs != cs || o.accent != accent || o.rollColor != rollColor || o.pitchColor != pitchColor || o.tolerance != tolerance;
+}
+
 /// Camera mode overlay: grid, crosshair, true horizon and verticals.
 class CameraGuidesPainter extends CustomPainter {
   CameraGuidesPainter({
