@@ -21,11 +21,44 @@ class LevelPage extends StatefulWidget {
 
 class _LevelPageState extends State<LevelPage> {
   late final Meter meter = Meter(store.lastMode)..start();
+  DateTime? _wrongSince;
+
+  @override
+  void initState() {
+    super.initState();
+    meter.addListener(_autoMode);
+  }
 
   @override
   void dispose() {
+    meter.removeListener(_autoMode);
     meter.dispose();
     super.dispose();
+  }
+
+  /// Level ↔ Flat by how the phone is held: lying down → Flat, standing → Level.
+  /// Needs the new position for 0.6 s, so it does not flip while you move.
+  void _autoMode() {
+    if (!store.autoMode || meter.locked || !Sensor.instance.hasData) {
+      _wrongSince = null;
+      return;
+    }
+    final up = uprightness(Sensor.instance.value);
+    final Mode? next = switch (meter.mode) {
+      Mode.level when up < 0.35 => Mode.flat,
+      Mode.flat when up > 0.8 => Mode.level,
+      _ => null,
+    };
+    if (next == null) {
+      _wrongSince = null;
+      return;
+    }
+    final now = DateTime.now();
+    _wrongSince ??= now;
+    if (now.difference(_wrongSince!).inMilliseconds >= 600) {
+      _wrongSince = null;
+      _setMode(next);
+    }
   }
 
   void _setMode(Mode m) {
@@ -90,7 +123,8 @@ class _LevelPageState extends State<LevelPage> {
                 child: _HeroCard(meter: meter, reading: r, level: level),
               ),
             ),
-            if (!r.positionOk && !meter.locked) _PositionHint(mode: meter.mode, onSwitch: _setMode),
+            if (!r.positionOk && !meter.locked && (meter.mode == Mode.plumb || !store.autoMode))
+              _PositionHint(mode: meter.mode, onSwitch: _setMode),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
               child: Row(children: [

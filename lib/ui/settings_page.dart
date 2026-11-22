@@ -180,6 +180,13 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           SectionTitle(tr('Măsurare', 'Measuring')),
           SwitchListTile(
+            secondary: const Icon(Icons.swap_vert),
+            title: Text(tr('Comutare automată Nivel / Plan', 'Auto switch Level / Flat')),
+            subtitle: Text(tr('Culcat → Plan, în picioare → Nivel', 'Lying down → Flat, standing → Level')),
+            value: store.autoMode,
+            onChanged: (v) => _set(() => store.autoMode = v),
+          ),
+          SwitchListTile(
             secondary: const Icon(Icons.screen_rotation_alt),
             title: Text(tr('Muchie aleasă automat', 'Pick edge automatically')),
             subtitle: Text(store.autoEdge

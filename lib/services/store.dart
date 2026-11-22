@@ -41,6 +41,7 @@ class Store extends ChangeNotifier {
   bool every45 = false;
 
   bool autoEdge = true;
+  bool autoMode = true;
   Edge levelEdge = Edge.bottom;
   bool plumbOnLeft = true;
   AutoLock autoLock = AutoLock.off;
@@ -108,6 +109,7 @@ class Store extends ChangeNotifier {
     sound = s['sound'] ?? false;
     every45 = s['e45'] ?? false;
     autoEdge = s['autoEdge'] ?? true;
+    autoMode = s['autoMode'] ?? true;
     levelEdge = _enum(Edge.values, s['edge'], Edge.bottom);
     plumbOnLeft = s['plumbLeft'] ?? true;
     autoLock = _enum(AutoLock.values, s['autoLock'], AutoLock.off);
@@ -146,6 +148,7 @@ class Store extends ChangeNotifier {
           'sound': sound,
           'e45': every45,
           'autoEdge': autoEdge,
+          'autoMode': autoMode,
           'edge': levelEdge.name,
           'plumbLeft': plumbOnLeft,
           'autoLock': autoLock.name,
