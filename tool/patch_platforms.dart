@@ -42,6 +42,10 @@ void main() {
       s = s.replaceFirst('android {',
           'android {\n    signingConfigs {\n        getByName("debug") {\n            storeFile = file("../../tool/debug.keystore")\n        }\n    }');
     }
+    // Android Lint crashes on a camera plugin source; it adds nothing to a release APK.
+    if (!s.contains('checkReleaseBuilds')) {
+      s = s.replaceFirst('android {', 'android {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }');
+    }
     return s;
   });
 
