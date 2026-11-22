@@ -113,8 +113,8 @@ class LevelPainter extends CustomPainter {
   final Color alert;
   final double tolerance;
 
-  static Offset center(Size s) => Offset(s.width / 2, s.height * 0.60);
-  static double radius(Size s) => math.min(s.width * 0.42, s.height * 0.44);
+  static Offset center(Size s) => Offset(s.width / 2, s.height * 0.62);
+  static double radius(Size s) => math.min(s.width * 0.44, s.height * 0.46);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -139,9 +139,9 @@ class LevelPainter extends CustomPainter {
     canvas.drawLine(Offset(-big, 0), Offset(big, 0), Paint()..color = accent..strokeWidth = level ? 3 : 2.2);
     canvas.restore();
 
-    // Fixed roll scale (device), ±30°.
+    // Fixed roll scale (device), ±45°.
     final tick = Paint()..color = cs.onSurfaceVariant.withValues(alpha: 0.75)..strokeCap = StrokeCap.round;
-    for (var d = -30; d <= 30; d++) {
+    for (var d = -45; d <= 45; d++) {
       final major = d % 10 == 0, mid = d % 5 == 0;
       if (!major && !mid && d.abs() > 5) continue;
       final a = d * _rad;
