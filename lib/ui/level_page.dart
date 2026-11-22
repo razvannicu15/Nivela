@@ -329,11 +329,13 @@ class _HeroCard extends StatelessWidget {
                     CustomPaint(painter: VialPainter(angle: v[0], cs: cs, accent: accent, tolerance: store.tolerance))),
           ),
         ]),
-      Mode.plumb => Smoothed(
-          values: [target],
-          builder: (c, v) => CustomPaint(
-              painter: PlumbPainter(
-                  angle: v[0], cs: cs, accent: accent, contactLeft: reading.contact == reading.edge.displayLeft)),
+      Mode.plumb => SizedBox.expand(
+          child: Smoothed(
+            values: [target],
+            builder: (c, v) => CustomPaint(
+                painter: PlumbPainter(
+                    angle: v[0], cs: cs, accent: accent, contactLeft: reading.contact == reading.edge.displayLeft)),
+          ),
         ),
       Mode.flat => Center(
           child: AspectRatio(
@@ -375,7 +377,7 @@ class _HeroCard extends StatelessWidget {
               ]),
             ),
             const SizedBox(width: 20),
-            SizedBox(width: box.maxHeight * 0.95, child: visual),
+            SizedBox(width: ((box.maxWidth - 60) * 0.48).clamp(0.0, box.maxHeight - 40), child: visual),
           ]),
         );
       }
