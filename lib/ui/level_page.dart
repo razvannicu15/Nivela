@@ -105,17 +105,17 @@ class _LevelPageState extends State<LevelPage> {
                 Expanded(
                   child: _ActionButton(
                     icon: switch (meter.lockState) {
-                      LockState.locked => Icons.lock,
-                      LockState.live => Icons.lock_open,
+                      MeterLock.locked => Icons.lock,
+                      MeterLock.live => Icons.lock_open,
                       _ => Icons.timer_outlined,
                     },
                     label: switch (meter.lockState) {
-                      LockState.locked => tr('Deblochează', 'Unlock'),
-                      LockState.armedStill => tr('Ține nemișcat…', 'Hold still…'),
-                      LockState.countdown => '${meter.secondsLeft} s',
-                      LockState.live => tr('Blochează', 'Lock'),
+                      MeterLock.locked => tr('Deblochează', 'Unlock'),
+                      MeterLock.armedStill => tr('Ține nemișcat…', 'Hold still…'),
+                      MeterLock.countdown => '${meter.secondsLeft} s',
+                      MeterLock.live => tr('Blochează', 'Lock'),
                     },
-                    selected: meter.lockState != LockState.live,
+                    selected: meter.lockState != MeterLock.live,
                     onTap: meter.lockPressed,
                   ),
                 ),

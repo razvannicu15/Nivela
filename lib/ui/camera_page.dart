@@ -2,6 +2,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import '../core/i18n.dart';
+import '../core/level_math.dart';
 import '../models/models.dart';
 import '../services/meter.dart';
 import '../services/sensor.dart';
@@ -230,13 +231,13 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                   _RoundButton(icon: Icons.grid_on, label: tr('Ghidaje', 'Guides'), onTap: _guides),
                   const SizedBox(width: 18),
                   _RoundButton(
-                    icon: meter.locked ? Icons.lock : (meter.lockState == LockState.live ? Icons.lock_open : Icons.timer_outlined),
-                    label: meter.lockState == LockState.countdown
+                    icon: meter.locked ? Icons.lock : (meter.lockState == MeterLock.live ? Icons.lock_open : Icons.timer_outlined),
+                    label: meter.lockState == MeterLock.countdown
                         ? '${meter.secondsLeft} s'
                         : (meter.locked ? tr('Blocat', 'Locked') : tr('Blochează', 'Lock')),
                     onTap: meter.lockPressed,
                     big: true,
-                    active: meter.lockState != LockState.live,
+                    active: meter.lockState != MeterLock.live,
                   ),
                   const SizedBox(width: 18),
                   _RoundButton(

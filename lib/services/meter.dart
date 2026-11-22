@@ -79,7 +79,7 @@ double _forward(Vec3 a) {
   return math.asin((a.z / l).clamp(-1.0, 1.0)) * 180 / math.pi;
 }
 
-enum LockState { live, armedStill, countdown, locked }
+enum MeterLock { live, armedStill, countdown, locked }
 
 /// Shared logic for the measuring screens: lock, auto-lock, relative zero and alerts.
 class Meter extends ChangeNotifier {
@@ -99,14 +99,14 @@ class Meter extends ChangeNotifier {
   final Map<Mode, FlatTilt> _zeroFlat = {};
   bool get relative => _mode == Mode.flat ? _zeroFlat.containsKey(_mode) : _zeroAngle.containsKey(_mode);
 
-  LockState lockState = LockState.live;
+  MeterLock lockState = MeterLock.live;
   Reading? _locked;
   DateTime? _countdownEnd;
   DateTime? _armedAt;
   DateTime? _stillSince;
   Timer? _timer;
 
-  bool get locked => lockState == LockState.locked;
+  bool get locked => lockState == MeterLock.locked;
   int get secondsLeft =>
       _countdownEnd == null ? 0 : (_countdownEnd!.difference(DateTime.now()).inMilliseconds / 1000).ceil().clamp(0, 99);
 
@@ -144,7 +144,7 @@ class Meter extends ChangeNotifier {
     if (r.mode != Mode.flat) _sticky = r.edge;
     final now = DateTime.now();
 
-    if (lockState == LockState.armedStill) {
+    if (lockState == MeterLock.armedStill) {
       if (Sensor.instance.isStill && now.difference(_armedAt!).inMilliseconds > 600) {
         _stillSince ??= now;
         if (now.difference(_stillSince!).inMilliseconds > 900) lock();
@@ -172,7 +172,7 @@ class Meter extends ChangeNotifier {
 
   /// Lock button: immediate, or armed according to the auto-lock setting.
   void lockPressed() {
-    if (lockState != LockState.live) {
+    if (lockState != MeterLock.live) {
       unlock();
       return;
     }
@@ -180,12 +180,12 @@ class Meter extends ChangeNotifier {
       case AutoLock.off:
         lock();
       case AutoLock.still:
-        lockState = LockState.armedStill;
+        lockState = MeterLock.armedStill;
         _armedAt = DateTime.now();
         _stillSince = null;
         notifyListeners();
       case AutoLock.s3 || AutoLock.s5 || AutoLock.s10:
-        lockState = LockState.countdown;
+        lockState = MeterLock.countdown;
         _countdownEnd = DateTime.now().add(Duration(seconds: store.autoLock.seconds));
         _timer?.cancel();
         _timer = Timer.periodic(const Duration(milliseconds: 200), (t) {
@@ -203,7 +203,7 @@ class Meter extends ChangeNotifier {
   void lock() {
     _timer?.cancel();
     _locked = live;
-    lockState = LockState.locked;
+    lockState = MeterLock.locked;
     _countdownEnd = null;
     if (store.vibrate) Native.vibrate(60);
     if (store.sound) Native.beep('lock');
@@ -214,12 +214,12 @@ class Meter extends ChangeNotifier {
     _timer?.cancel();
     _locked = null;
     _countdownEnd = null;
-    lockState = LockState.live;
+    lockState = MeterLock.live;
     if (!silent) notifyListeners();
   }
 
   /// Long press: lock now, or unlock.
-  void toggleLock() => lockState == LockState.live ? lock() : unlock();
+  void toggleLock() => lockState == MeterLock.live ? lock() : unlock();
 
   /// Zero button: current reading becomes the reference; again to clear.
   void toggleRelative() {
