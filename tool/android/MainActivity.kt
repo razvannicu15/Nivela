@@ -58,7 +58,9 @@ class MainActivity : FlutterActivity() {
         EventChannel(messenger, "nivela/sensor").setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
                 val sm = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-                val acc = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+                // Gravity (accelerometer fused with the gyroscope) ignores hand shake;
+                // fall back to the raw accelerometer on phones without it.
+                val acc = sm.getDefaultSensor(Sensor.TYPE_GRAVITY) ?: sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
                 if (acc == null) {
                     events.error("no_sensor", "No accelerometer", null)
                     return

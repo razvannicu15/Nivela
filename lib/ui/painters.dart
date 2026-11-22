@@ -51,7 +51,7 @@ void paintVial(Canvas canvas, Rect rect, double angle, {required ColorScheme cs,
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [_shade(liquid, 0.22), _shade(liquid, 0.05), _shade(liquid, -0.08), _shade(liquid, 0.08)],
+          colors: [_shade(liquid, 0.30), _shade(liquid, 0.16), _shade(liquid, 0.04), _shade(liquid, 0.14)],
           stops: const [0, 0.35, 0.8, 1],
         ).createShader(tubeRect));
 
@@ -75,21 +75,26 @@ void paintVial(Canvas canvas, Rect rect, double angle, {required ColorScheme cs,
 
   // Bubble: goes to the high end.
   final bx = cx - bubbleOffset(angle, scale: vialScale) * travel;
-  final br = Rect.fromCenter(center: Offset(bx, tubeRect.center.dy - tubeRect.height * 0.06), width: bubbleW, height: bubbleH);
+  final br = Rect.fromCenter(center: Offset(bx, tubeRect.center.dy), width: bubbleW, height: bubbleH);
   final bubble = RRect.fromRectAndRadius(br, Radius.circular(bubbleH / 2));
   canvas.drawRRect(
       bubble,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(0, -0.2),
-          radius: 0.9,
-          colors: [Colors.white.withValues(alpha: 0.95), Color.lerp(Colors.white, liquid, 0.25)!.withValues(alpha: 0.9), _shade(liquid, -0.12)],
-          stops: const [0, 0.7, 1],
+          center: const Alignment(0, -0.1),
+          radius: 0.75,
+          colors: [
+            Colors.white.withValues(alpha: 0.92),
+            Color.lerp(Colors.white, liquid, 0.18)!.withValues(alpha: 0.85),
+            Color.lerp(Colors.white, liquid, 0.45)!.withValues(alpha: 0.7),
+          ],
+          stops: const [0, 0.6, 1],
         ).createShader(br));
-  canvas.drawRRect(bubble, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.4..color = _shade(liquid, -0.25).withValues(alpha: 0.7));
-  canvas.drawOval(
-      Rect.fromLTWH(br.left + br.width * 0.18, br.top + br.height * 0.16, br.width * 0.42, br.height * 0.28),
-      Paint()..color = Colors.white.withValues(alpha: 0.9));
+  canvas.drawRRect(bubble, Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = _shade(liquid, -0.2).withValues(alpha: 0.35));
+  canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(br.left + br.width * 0.2, br.top + br.height * 0.14, br.width * 0.6, br.height * 0.22),
+          Radius.circular(br.height * 0.11)),
+      Paint()..color = Colors.white.withValues(alpha: 0.95));
 
   // Glass shine and inner shadow.
   canvas.drawRect(
@@ -104,91 +109,136 @@ void paintVial(Canvas canvas, Rect rect, double angle, {required ColorScheme cs,
   canvas.drawRRect(tube, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.5..color = Colors.black.withValues(alpha: 0.28));
 }
 
-/// Level mode: true horizon, roll scale with pointer, and the vial.
-class LevelPainter extends CustomPainter {
-  LevelPainter({required this.angle, required this.level, required this.cs, required this.alert, required this.tolerance});
-  final double angle; // degrees, + = right end lower
+/// Spirit vial filling its box.
+class VialPainter extends CustomPainter {
+  VialPainter({required this.angle, required this.cs, required this.liquid, required this.tolerance});
+  final double angle, tolerance;
+  final ColorScheme cs;
+  final Color liquid;
+  @override
+  void paint(Canvas canvas, Size size) =>
+      paintVial(canvas, Offset.zero & size, angle, cs: cs, liquid: liquid, tolerance: tolerance);
+  @override
+  bool shouldRepaint(VialPainter o) => o.angle != angle || o.liquid != liquid || o.cs != cs || o.tolerance != tolerance;
+}
+
+/// Round horizon window (like an attitude indicator): ground and sky split by
+/// the true horizon, fixed device marks, roll ticks on the bezel.
+class AttitudePainter extends CustomPainter {
+  AttitudePainter({required this.angle, required this.level, required this.cs, required this.alert});
+  final double angle;
   final bool level;
   final ColorScheme cs;
   final Color alert;
-  final double tolerance;
-
-  static Offset center(Size s) => Offset(s.width / 2, s.height * 0.62);
-  static double radius(Size s) => math.min(s.width * 0.44, s.height * 0.46);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final c = center(size);
-    final r = radius(size);
-    final big = size.longestSide * 2;
+    final dark = cs.brightness == Brightness.dark;
     final accent = level ? alert : cs.primary;
+    final c = size.center(Offset.zero);
+    final outer = math.min(size.width, size.height) / 2 - 6;
+    final ring = outer * 0.13;
+    final r = outer - ring;
 
-    // Ground below the true horizon, fading downwards.
+    // Bezel with shadow.
+    canvas.drawCircle(c + const Offset(0, 5), outer,
+        Paint()..color = Colors.black.withValues(alpha: dark ? 0.5 : 0.16)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+    canvas.drawCircle(
+        c,
+        outer,
+        Paint()
+          ..shader = SweepGradient(colors: dark
+                  ? const [Color(0xFF4A5157), Color(0xFF2B3035), Color(0xFF50575D), Color(0xFF2B3035), Color(0xFF4A5157)]
+                  : const [Color(0xFFFBFCFC), Color(0xFFD2D7DC), Color(0xFFF4F6F7), Color(0xFFD2D7DC), Color(0xFFFBFCFC)])
+              .createShader(Rect.fromCircle(center: c, radius: outer)));
+    canvas.drawCircle(c, outer, Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = Colors.black.withValues(alpha: 0.15));
+
+    // Roll ticks on the bezel, ±60°.
+    final tk = Paint()..color = (dark ? Colors.white : Colors.black).withValues(alpha: 0.55)..strokeCap = StrokeCap.round;
+    for (var d = -60; d <= 60; d += 5) {
+      final a = d * _rad;
+      final dir = Offset(math.sin(a), -math.cos(a));
+      final major = d % 30 == 0, mid = d % 10 == 0;
+      tk.strokeWidth = major ? 2.4 : 1.4;
+      final len = ring * (major ? 0.62 : (mid ? 0.45 : 0.3));
+      canvas.drawLine(c + dir * (r + ring * 0.12), c + dir * (r + ring * 0.12 + len), tk);
+    }
+
+    // Window: sky and ground.
+    final win = Rect.fromCircle(center: c, radius: r);
     canvas.save();
-    canvas.translate(c.dx, c.dy);
-    canvas.rotate(-angle * _rad);
-    final ground = Rect.fromLTRB(-big, 0, big, size.height);
+    canvas.clipPath(Path()..addOval(win));
     canvas.drawRect(
-        Rect.fromLTRB(-big, 0, big, big),
+        win,
         Paint()
           ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [accent.withValues(alpha: level ? 0.26 : 0.16), accent.withValues(alpha: level ? 0.10 : 0.04)],
+            colors: dark ? [cs.surfaceContainerHighest, cs.surfaceContainer] : [Colors.white, cs.surfaceContainerLow],
+          ).createShader(win));
+    canvas.translate(c.dx, c.dy);
+    canvas.rotate(-angle * _rad);
+    final ground = Rect.fromLTRB(-r * 1.5, 0, r * 1.5, r * 1.5);
+    canvas.drawRect(
+        ground,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_shade(accent, 0.12), _shade(accent, -0.06)],
           ).createShader(ground));
-    canvas.drawLine(Offset(-big, 0), Offset(big, 0), Paint()..color = accent..strokeWidth = level ? 3 : 2.2);
-    canvas.restore();
-
-    // Fixed roll scale (device), ±45°.
-    final tick = Paint()..color = cs.onSurfaceVariant.withValues(alpha: 0.75)..strokeCap = StrokeCap.round;
-    for (var d = -45; d <= 45; d++) {
-      final major = d % 10 == 0, mid = d % 5 == 0;
-      if (!major && !mid && d.abs() > 5) continue;
-      final a = d * _rad;
-      final dir = Offset(math.sin(a), -math.cos(a));
-      final len = major ? 16.0 : (mid ? 10.0 : 6.0);
-      tick.strokeWidth = major ? 2.2 : 1.4;
-      canvas.drawLine(c + dir * r, c + dir * (r + len), tick);
-      if (major && d != 0) {
-        final tp = _label('${d.abs()}°', cs.onSurfaceVariant, 12);
-        tp.paint(canvas, c + dir * (r + 28) - Offset(tp.width / 2, tp.height / 2));
-      }
+    // Pitch-style guide lines in the ground and sky.
+    final gl = Paint()..color = Colors.white.withValues(alpha: 0.35)..strokeWidth = 1.2;
+    for (final y in [r * 0.33, r * 0.66]) {
+      canvas.drawLine(Offset(-r * 0.25, y), Offset(r * 0.25, y), gl);
+      canvas.drawLine(Offset(-r * 0.25, -y), Offset(r * 0.25, -y), Paint()..color = accent.withValues(alpha: 0.25)..strokeWidth = 1.2);
     }
-    // Index at 0°.
-    final top = c + Offset(0, -r - 20);
+    canvas.drawLine(Offset(-r * 1.5, 0), Offset(r * 1.5, 0), Paint()..color = Colors.white..strokeWidth = 2.5);
+    // Pointer at the top of the window, moves with the horizon.
     canvas.drawPath(
         Path()
-          ..moveTo(top.dx, top.dy + 4)
-          ..lineTo(top.dx - 7, top.dy - 8)
-          ..lineTo(top.dx + 7, top.dy - 8)
-          ..close(),
-        Paint()..color = cs.onSurface);
-
-    // Pointer: true "up", moves with gravity.
-    final up = Offset(-math.sin(angle * _rad), -math.cos(angle * _rad));
-    final perp = Offset(-up.dy, up.dx);
-    final tip = c + up * (r - 2);
-    canvas.drawPath(
-        Path()
-          ..moveTo(tip.dx, tip.dy)
-          ..lineTo((tip - up * 18 + perp * 9).dx, (tip - up * 18 + perp * 9).dy)
-          ..lineTo((tip - up * 18 - perp * 9).dx, (tip - up * 18 - perp * 9).dy)
+          ..moveTo(0, -r + 4)
+          ..lineTo(-9, -r + 20)
+          ..lineTo(9, -r + 20)
           ..close(),
         Paint()..color = accent);
+    canvas.restore();
 
-    // Device reference marks at the sides.
-    final ref = Paint()..color = cs.onSurface.withValues(alpha: 0.6)..strokeWidth = 2.5..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(14, c.dy), Offset(40, c.dy), ref);
-    canvas.drawLine(Offset(size.width - 40, c.dy), Offset(size.width - 14, c.dy), ref);
+    // Inner shadow and glass shine.
+    canvas.drawCircle(c, r, Paint()..style = PaintingStyle.stroke..strokeWidth = 6..color = Colors.black.withValues(alpha: 0.12)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+    canvas.save();
+    canvas.clipPath(Path()..addOval(win));
+    canvas.drawOval(
+        Rect.fromLTWH(c.dx - r * 0.8, c.dy - r * 1.05, r * 1.6, r * 1.0),
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.white.withValues(alpha: dark ? 0.12 : 0.4), Colors.white.withValues(alpha: 0)],
+          ).createShader(win));
+    canvas.restore();
+    canvas.drawCircle(c, r, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = Colors.black.withValues(alpha: 0.25));
 
-    final vw = math.min(size.width - 40, 460.0);
-    paintVial(canvas, Rect.fromCenter(center: Offset(size.width / 2, size.height - 52), width: vw, height: 62), angle,
-        cs: cs, liquid: accent, tolerance: tolerance);
+    // Fixed device marks: index at the top and the "wings".
+    final ink = dark ? Colors.white : const Color(0xFF1B1F23);
+    final top = c + Offset(0, -r - ring * 0.1);
+    canvas.drawPath(
+        Path()
+          ..moveTo(top.dx, top.dy + 2)
+          ..lineTo(top.dx - 8, top.dy - ring * 0.62)
+          ..lineTo(top.dx + 8, top.dy - ring * 0.62)
+          ..close(),
+        Paint()..color = ink);
+    final wing = Paint()..color = ink..strokeWidth = 5..strokeCap = StrokeCap.round;
+    canvas.drawLine(c + Offset(-r * 0.72, 0), c + Offset(-r * 0.28, 0), wing);
+    canvas.drawLine(c + Offset(r * 0.28, 0), c + Offset(r * 0.72, 0), wing);
+    canvas.drawLine(c + Offset(-r * 0.28, 0), c + Offset(-r * 0.28, r * 0.09), wing);
+    canvas.drawLine(c + Offset(r * 0.28, 0), c + Offset(r * 0.28, r * 0.09), wing);
+    canvas.drawCircle(c, 5, Paint()..color = ink);
   }
 
   @override
-  bool shouldRepaint(LevelPainter o) =>
-      o.angle != angle || o.level != level || o.cs != cs || o.alert != alert || o.tolerance != tolerance;
+  bool shouldRepaint(AttitudePainter o) => o.angle != angle || o.level != level || o.cs != cs || o.alert != alert;
 }
 
 /// Plumb mode: plumb line from the top, against the phone's own vertical.

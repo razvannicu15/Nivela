@@ -65,6 +65,19 @@ class Sensor extends ChangeNotifier {
     return s * (1 / _window.length);
   }
 
+  Vec3 _median(int n) {
+    final l = _window.toList();
+    final from = math.max(0, l.length - n);
+    final xs = <double>[], ys = <double>[], zs = <double>[];
+    for (var i = from; i < l.length; i++) {
+      xs.add(l[i].x);
+      ys.add(l[i].y);
+      zs.add(l[i].z);
+    }
+    double med(List<double> v) => (v..sort())[v.length ~/ 2];
+    return Vec3(med(xs), med(ys), med(zs));
+  }
+
   final _rawListeners = <void Function(Vec3)>[];
   void addRawListener(void Function(Vec3) f) => _rawListeners.add(f);
   void removeRawListener(void Function(Vec3) f) => _rawListeners.remove(f);
@@ -97,16 +110,18 @@ class Sensor extends ChangeNotifier {
       value = raw;
       hasData = true;
     } else {
-      // Adaptive low-pass: hand tremor and sensor noise (small differences)
-      // are filtered hard, a real move (large difference) is followed quickly.
-      // smoothing 0 → lively, 1 → very calm.
+      // 1) Median of the last samples removes spikes.
+      // 2) Adaptive low-pass: small differences (tremor, noise) get a long time
+      //    constant, a real move (large difference) a short one.
+      final m = _median(7);
       final k = store.smoothing.clamp(0.0, 1.0);
-      final slow = 0.10 - 0.088 * k; // ≈ 0.2 s … 1.6 s at 50 Hz
-      final fast = 0.40 - 0.25 * k;
-      final d = (raw - value).length;
-      final t = ((d - 0.25) / 1.0).clamp(0.0, 1.0);
-      final alpha = slow + (fast - slow) * t * t;
-      value = value + (raw - value) * alpha;
+      final slowTau = 0.30 + 1.10 * k; // s; default ≈ 0.9 s
+      final fastTau = 0.08 + 0.17 * k;
+      final d = (m - value).length;
+      final t = ((d - 0.5) / 2.0).clamp(0.0, 1.0);
+      final tau = slowTau + (fastTau - slowTau) * t * t;
+      final alpha = 1 - math.exp(-0.02 / tau);
+      value = value + (m - value) * alpha;
     }
     for (final f in List.of(_rawListeners)) {
       f(raw);

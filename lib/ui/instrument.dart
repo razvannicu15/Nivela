@@ -10,7 +10,7 @@ import 'widgets.dart';
 /// Eases a list of values towards their targets every frame (liquid feel),
 /// independent of how often the sensor reports.
 class Smoothed extends StatefulWidget {
-  const Smoothed({super.key, required this.values, required this.builder, this.tau = 0.14});
+  const Smoothed({super.key, required this.values, required this.builder, this.tau = 0.22});
   final List<double> values;
   final double tau;
   final Widget Function(BuildContext context, List<double> values) builder;
@@ -131,7 +131,8 @@ class ModeTabs<T> extends StatelessWidget {
             ),
           ),
         ),
-        Row(children: [
+        Positioned.fill(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           for (var k = 0; k < n; k++)
             Expanded(
               child: InkWell(
@@ -153,7 +154,8 @@ class ModeTabs<T> extends StatelessWidget {
                 ),
               ),
             ),
-        ]),
+          ]),
+        ),
       ]),
     );
   }

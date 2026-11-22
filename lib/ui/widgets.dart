@@ -63,12 +63,13 @@ class SectionTitle extends StatelessWidget {
 
 /// Small rounded status label.
 class Pill extends StatelessWidget {
-  const Pill(this.text, {super.key, this.icon, this.color, this.onTap, this.filled = false});
+  const Pill(this.text, {super.key, this.icon, this.color, this.onTap, this.filled = false, this.trailing});
   final String text;
   final IconData? icon;
   final Color? color;
   final VoidCallback? onTap;
   final bool filled;
+  final IconData? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +88,7 @@ class Pill extends StatelessWidget {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             if (icon != null) ...[Icon(icon, size: 15, color: fg), const SizedBox(width: 5)],
             Text(text, style: TextStyle(color: fg, fontSize: 12.5, fontWeight: FontWeight.w600)),
+            if (trailing != null) ...[const SizedBox(width: 2), Icon(trailing, size: 16, color: fg)],
           ]),
         ),
       ),

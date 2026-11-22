@@ -53,7 +53,7 @@ class _LevelPageState extends State<LevelPage> {
           final level = meter.isLevel(r) && Sensor.instance.hasData;
           return Column(children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 10, 0),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(children: [
                 Expanded(
                   child: ModeTabs<Mode>(
@@ -66,7 +66,6 @@ class _LevelPageState extends State<LevelPage> {
                     onChanged: _setMode,
                   ),
                 ),
-                SizedBox(width: 48, child: meter.mode == Mode.flat ? null : _EdgeMenu(meter: meter)),
               ]),
             ),
             _StatusRow(meter: meter, reading: r),
@@ -128,15 +127,15 @@ class _LevelPageState extends State<LevelPage> {
 }
 
 class _EdgeMenu extends StatelessWidget {
-  const _EdgeMenu({required this.meter});
+  const _EdgeMenu({required this.meter, required this.reading});
   final Meter meter;
+  final Reading reading;
 
   @override
   Widget build(BuildContext context) {
     if (meter.mode == Mode.plumb) {
       return PopupMenuButton<bool>(
         tooltip: tr('Muchia pe perete', 'Edge on the wall'),
-        icon: Icon(store.plumbOnLeft ? Icons.border_left : Icons.border_right),
         initialValue: store.plumbOnLeft,
         onSelected: (v) {
           store.plumbOnLeft = v;
@@ -146,11 +145,12 @@ class _EdgeMenu extends StatelessWidget {
           PopupMenuItem(value: true, child: Text(tr('Muchia stângă pe perete', 'Left edge on the wall'))),
           PopupMenuItem(value: false, child: Text(tr('Muchia dreaptă pe perete', 'Right edge on the wall'))),
         ],
+        child: Pill(store.plumbOnLeft ? tr('Muchia stângă pe perete', 'Left edge on wall') : tr('Muchia dreaptă pe perete', 'Right edge on wall'),
+            icon: store.plumbOnLeft ? Icons.border_left : Icons.border_right, trailing: Icons.expand_more),
       );
     }
     return PopupMenuButton<Edge?>(
       tooltip: tr('Muchia de referință', 'Reference edge'),
-      icon: Icon(store.autoEdge ? Icons.screen_rotation_alt : Icons.border_bottom),
       onSelected: (e) {
         store.autoEdge = e == null;
         if (e != null) store.levelEdge = e;
@@ -162,6 +162,8 @@ class _EdgeMenu extends StatelessWidget {
           CheckedPopupMenuItem(
               value: e, checked: !store.autoEdge && store.levelEdge == e, child: Text(tr('Muchia: ${e.label}', 'Edge: ${e.label}'))),
       ],
+      child: Pill(store.autoEdge ? '${reading.face.label} · ${tr('auto', 'auto')}' : reading.face.label,
+          icon: store.autoEdge ? Icons.screen_rotation_alt : Icons.border_bottom, trailing: Icons.expand_more),
     );
   }
 }
@@ -176,7 +178,7 @@ class _StatusRow extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final face = reading.face;
     final pills = <Widget>[
-      Pill(face.label, icon: face.isFlat ? Icons.smartphone : Icons.border_bottom),
+      if (meter.mode == Mode.flat) Pill(face.label, icon: Icons.smartphone) else _EdgeMenu(meter: meter, reading: reading),
       if (!store.profile.has(face))
         Pill(tr('Necalibrat', 'Not calibrated'), icon: Icons.tune, color: cs.error, onTap: () {
           Navigator.of(context).push(MaterialPageRoute(builder: (_) => CalibrationPage(start: face)));
@@ -225,27 +227,50 @@ class _LevelView extends StatelessWidget {
     final target = ok ? reading.angle : 0.0;
     final shown = meter.stable('level', target);
     final (dirText, dirIcon) = _direction(shown, Mode.level);
+    final accent = level ? alertColor() : cs.primary;
     return LayoutBuilder(builder: (context, box) {
-      final size = box.biggest;
-      final c = LevelPainter.center(size), rad = LevelPainter.radius(size);
-      return Stack(fit: StackFit.expand, children: [
-        Smoothed(
-          values: [target],
-          builder: (context, v) => CustomPaint(
-              painter: LevelPainter(angle: v[0], level: level, cs: cs, alert: alertColor(), tolerance: store.tolerance)),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          top: c.dy - rad * 0.80,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Readout(shown, level: level, dash: !ok, size: rad < 140 ? 64 : 80),
-            const SizedBox(height: 10),
-            Caption(ok ? dirText : tr('Pune telefonul pe o muchie', 'Stand the phone on an edge'),
-                icon: ok ? (meter.locked ? Icons.lock : dirIcon) : Icons.smartphone),
-          ]),
-        ),
+      final wide = box.maxWidth > box.maxHeight * 1.1;
+      final readout = Column(mainAxisSize: MainAxisSize.min, children: [
+        Readout(shown, level: level, dash: !ok, size: wide ? 68 : 76),
+        const SizedBox(height: 10),
+        Caption(ok ? dirText : tr('Pune telefonul pe o muchie', 'Stand the phone on an edge'),
+            icon: ok ? (meter.locked ? Icons.lock : dirIcon) : Icons.smartphone),
       ]);
+      final dial = AspectRatio(
+        aspectRatio: 1,
+        child: Smoothed(
+          values: [target],
+          builder: (context, v) => CustomPaint(painter: AttitudePainter(angle: v[0], level: level, cs: cs, alert: alertColor())),
+        ),
+      );
+      final vial = SizedBox(
+        height: 60,
+        width: double.infinity,
+        child: Smoothed(
+          values: [target],
+          builder: (context, v) =>
+              CustomPaint(painter: VialPainter(angle: v[0], cs: cs, liquid: accent, tolerance: store.tolerance)),
+        ),
+      );
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+        child: Column(children: [
+          if (wide)
+            Expanded(
+              child: Row(children: [
+                Expanded(child: Center(child: readout)),
+                const SizedBox(width: 12),
+                Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: dial),
+              ]),
+            )
+          else ...[
+            readout,
+            Expanded(child: Center(child: Padding(padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8), child: dial))),
+          ],
+          const SizedBox(height: 14),
+          vial,
+        ]),
+      );
     });
   }
 }
