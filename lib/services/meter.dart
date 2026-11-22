@@ -52,13 +52,13 @@ Reading compute(Vec3 a, Mode mode, {double? zeroAngle, FlatTilt? zeroFlat, Edge?
   final up = uprightness(a);
   switch (mode) {
     case Mode.level:
-      final e = store.autoEdge ? stickyDownEdge(a, sticky) : store.levelEdge;
+      final e = !store.autoEdge ? store.levelEdge : (up > 0.5 ? stickyDownEdge(a, sticky) : sticky ?? Edge.bottom);
       var dev = fromTarget(edgeAngle(a, e) - p.edge(e), every45: store.every45);
       if (zeroAngle != null) dev -= zeroAngle;
       return Reading(mode: mode, angle: dev, edge: e, face: faceOf(e), positionOk: up > 0.5,
           forward: _forward(a));
     case Mode.plumb:
-      final down = stickyDownEdge(a, sticky);
+      final down = up > 0.5 ? stickyDownEdge(a, sticky) : sticky ?? Edge.bottom;
       final c = store.plumbOnLeft ? down.displayLeft : down.displayRight;
       var dev = plumbDeviation(edgeAngle(a, c) - p.edge(c));
       if (store.every45) dev = fromTarget(dev, every45: true);
