@@ -238,8 +238,8 @@ class Readout extends StatelessWidget {
       fontFamily: 'Roboto',
       fontSize: size,
       height: 1,
-      fontWeight: FontWeight.w500,
-      letterSpacing: -size * 0.04,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -size * 0.03,
       color: c,
       fontFeatures: const [FontFeature.tabularFigures()],
     );

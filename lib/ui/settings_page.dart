@@ -53,17 +53,38 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(title: Text(tr('Setări', 'Settings'))),
       body: MaxWidth(
         child: ListView(padding: const EdgeInsets.only(bottom: 24), children: [
-          SectionTitle(tr('Afișare', 'Display')),
+          SectionTitle(tr('Limbă', 'Language')),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: SegmentedButton<ThemeMode>(
-              segments: [
-                ButtonSegment(value: ThemeMode.system, label: Text(tr('Sistem', 'System')), icon: const Icon(Icons.brightness_auto)),
-                ButtonSegment(value: ThemeMode.light, label: Text(tr('Luminoasă', 'Light')), icon: const Icon(Icons.light_mode)),
-                ButtonSegment(value: ThemeMode.dark, label: Text(tr('Întunecată', 'Dark')), icon: const Icon(Icons.dark_mode)),
-              ],
-              selected: {store.themeMode},
-              onSelectionChanged: (s) => _set(() => store.themeMode = s.first),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 'system', label: Text(tr('Automat', 'Automatic'))),
+                  const ButtonSegment(value: 'ro', label: Text('Română')),
+                  const ButtonSegment(value: 'en', label: Text('English')),
+                ],
+                selected: {store.language},
+                onSelectionChanged: (s) => _set(() => store.language = s.first),
+              ),
+            ),
+          ),
+          SectionTitle(tr('Aspect', 'Appearance')),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<ThemeMode>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto_outlined)),
+                  ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_outlined)),
+                  ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_outlined)),
+                ],
+                selected: {store.themeMode},
+                onSelectionChanged: (s) => _set(() => store.themeMode = s.first),
+              ),
             ),
           ),
           ListTile(
@@ -76,16 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ]),
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.language),
-            title: Text(tr('Limbă', 'Language')),
-            subtitle: Text(switch (store.language) { 'ro' => 'Română', 'en' => 'English', _ => tr('Ca telefonul', 'Same as phone') }),
-            onTap: () async {
-              final v = await _pick(tr('Limbă', 'Language'),
-                  [('system', tr('Ca telefonul', 'Same as phone')), ('ro', 'Română'), ('en', 'English')], store.language);
-              if (v != null) _set(() => store.language = v);
-            },
-          ),
+          SectionTitle(tr('Afișare', 'Display')),
           ListTile(
             leading: const Icon(Icons.straighten),
             title: Text(tr('Unitate', 'Unit')),
