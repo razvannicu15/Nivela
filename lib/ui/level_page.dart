@@ -237,7 +237,7 @@ class _LevelView extends StatelessWidget {
         Positioned(
           left: 0,
           right: 0,
-          top: c.dy - rad * 0.72,
+          top: c.dy - rad * 0.80,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Readout(shown, level: level, dash: !ok, size: rad < 140 ? 64 : 80),
             const SizedBox(height: 10),
