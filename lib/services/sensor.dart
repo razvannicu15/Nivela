@@ -97,8 +97,15 @@ class Sensor extends ChangeNotifier {
       value = raw;
       hasData = true;
     } else {
-      // smoothing 0 → fast and jumpy, 1 → very calm.
-      final alpha = 0.45 - 0.41 * store.smoothing.clamp(0.0, 1.0);
+      // Adaptive low-pass: hand tremor and sensor noise (small differences)
+      // are filtered hard, a real move (large difference) is followed quickly.
+      // smoothing 0 → lively, 1 → very calm.
+      final k = store.smoothing.clamp(0.0, 1.0);
+      final slow = 0.10 - 0.088 * k; // ≈ 0.2 s … 1.6 s at 50 Hz
+      final fast = 0.40 - 0.25 * k;
+      final d = (raw - value).length;
+      final t = ((d - 0.25) / 1.0).clamp(0.0, 1.0);
+      final alpha = slow + (fast - slow) * t * t;
       value = value + (raw - value) * alpha;
     }
     for (final f in List.of(_rawListeners)) {

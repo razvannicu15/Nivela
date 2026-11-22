@@ -7,6 +7,7 @@ import '../services/meter.dart';
 import '../services/sensor.dart';
 import '../services/store.dart';
 import 'calibration_page.dart';
+import 'instrument.dart';
 import 'painters.dart';
 import 'widgets.dart';
 
@@ -52,111 +53,76 @@ class _LevelPageState extends State<LevelPage> {
           final level = meter.isLevel(r) && Sensor.instance.hasData;
           return Column(children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+              padding: const EdgeInsets.fromLTRB(16, 12, 10, 0),
               child: Row(children: [
                 Expanded(
-                  child: SegmentedButton<Mode>(
-                    showSelectedIcon: false,
-                    segments: [
-                      ButtonSegment(value: Mode.level, label: Text(Mode.level.label), icon: const Icon(Icons.horizontal_rule)),
-                      ButtonSegment(value: Mode.plumb, label: Text(Mode.plumb.label), icon: const Icon(Icons.vertical_align_bottom)),
-                      ButtonSegment(value: Mode.flat, label: Text(Mode.flat.label), icon: const Icon(Icons.adjust)),
+                  child: ModeTabs<Mode>(
+                    items: [
+                      (Mode.level, Icons.horizontal_rule_rounded, Mode.level.label),
+                      (Mode.plumb, Icons.height_rounded, Mode.plumb.label),
+                      (Mode.flat, Icons.adjust_rounded, Mode.flat.label),
                     ],
-                    selected: {meter.mode},
-                    onSelectionChanged: (s) => _setMode(s.first),
+                    value: meter.mode,
+                    onChanged: _setMode,
                   ),
                 ),
-                if (meter.mode != Mode.flat) _EdgeMenu(meter: meter),
+                SizedBox(width: 48, child: meter.mode == Mode.flat ? null : _EdgeMenu(meter: meter)),
               ]),
             ),
             _StatusRow(meter: meter, reading: r),
             Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onLongPress: meter.toggleLock,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 200),
-                  opacity: meter.locked ? 0.92 : 1,
-                  child: switch (meter.mode) {
-                    Mode.flat => _FlatView(reading: r, level: level, locked: meter.locked),
-                    _ => RotatedBox(
-                        quarterTurns: r.edge.quarterTurns,
-                        child: meter.mode == Mode.level
-                            ? _LevelView(reading: r, level: level, locked: meter.locked)
-                            : _PlumbView(reading: r, level: level, locked: meter.locked),
-                      ),
-                  },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: InstrumentCard(
+                  level: level,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onLongPress: meter.toggleLock,
+                    child: switch (meter.mode) {
+                      Mode.flat => _FlatView(meter: meter, reading: r, level: level),
+                      _ => RotatedBox(
+                          quarterTurns: r.edge.quarterTurns,
+                          child: meter.mode == Mode.level
+                              ? _LevelView(meter: meter, reading: r, level: level)
+                              : _PlumbView(meter: meter, reading: r, level: level),
+                        ),
+                    },
+                  ),
                 ),
               ),
             ),
             if (!r.positionOk && !meter.locked) _PositionHint(mode: meter.mode, onSwitch: _setMode),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-              child: Row(children: [
-                Expanded(
-                  child: _ActionButton(
-                    icon: meter.relative ? Icons.exposure_zero : Icons.exposure_zero_outlined,
-                    label: meter.relative ? tr('Absolut', 'Absolute') : tr('Zero', 'Zero'),
-                    selected: meter.relative,
-                    onTap: meter.toggleRelative,
-                  ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, crossAxisAlignment: CrossAxisAlignment.end, children: [
+                RoundAction(
+                  icon: Icons.exposure_zero_rounded,
+                  label: meter.relative ? tr('Absolut', 'Absolute') : tr('Zero', 'Zero'),
+                  selected: meter.relative,
+                  onTap: meter.toggleRelative,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ActionButton(
-                    icon: switch (meter.lockState) {
-                      MeterLock.locked => Icons.lock,
-                      MeterLock.live => Icons.lock_open,
-                      _ => Icons.timer_outlined,
-                    },
-                    label: switch (meter.lockState) {
-                      MeterLock.locked => tr('Deblochează', 'Unlock'),
-                      MeterLock.armedStill => tr('Ține nemișcat…', 'Hold still…'),
-                      MeterLock.countdown => '${meter.secondsLeft} s',
-                      MeterLock.live => tr('Blochează', 'Lock'),
-                    },
-                    selected: meter.lockState != MeterLock.live,
-                    onTap: meter.lockPressed,
-                  ),
+                RoundAction(
+                  big: true,
+                  icon: switch (meter.lockState) {
+                    MeterLock.locked => Icons.lock_rounded,
+                    MeterLock.live => Icons.lock_open_rounded,
+                    _ => Icons.timer_outlined,
+                  },
+                  label: switch (meter.lockState) {
+                    MeterLock.locked => tr('Deblochează', 'Unlock'),
+                    MeterLock.armedStill => tr('Ține nemișcat', 'Hold still'),
+                    MeterLock.countdown => '${meter.secondsLeft} s',
+                    MeterLock.live => tr('Blochează', 'Lock'),
+                  },
+                  selected: meter.lockState != MeterLock.live,
+                  onTap: meter.lockPressed,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ActionButton(icon: Icons.bookmark_add_outlined, label: tr('Salvează', 'Save'), onTap: _save, primary: true),
-                ),
+                RoundAction(icon: Icons.bookmark_add_outlined, label: tr('Salvează', 'Save'), onTap: _save),
               ]),
             ),
           ]);
         },
       ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.icon, required this.label, required this.onTap, this.selected = false, this.primary = false});
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool selected, primary;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final style = FilledButton.styleFrom(
-      minimumSize: const Size.fromHeight(52),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: primary ? cs.primary : (selected ? cs.tertiaryContainer : cs.secondaryContainer),
-      foregroundColor: primary ? cs.onPrimary : (selected ? cs.onTertiaryContainer : cs.onSecondaryContainer),
-    );
-    return FilledButton(
-      style: style,
-      onPressed: onTap,
-      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, size: 20),
-        const SizedBox(width: 6),
-        Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
-      ]),
     );
   }
 }
@@ -220,137 +186,188 @@ class _StatusRow extends StatelessWidget {
       if (meter.locked) Pill(tr('Blocat', 'Locked'), icon: Icons.lock, color: cs.primary, filled: true, onTap: meter.unlock),
     ];
     return SizedBox(
-      height: 34,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-        itemCount: pills.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
-        itemBuilder: (_, i) => pills[i],
+      height: 44,
+      child: Center(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(children: [
+            for (var i = 0; i < pills.length; i++) ...[if (i > 0) const SizedBox(width: 6), pills[i]],
+          ]),
+        ),
       ),
     );
   }
 }
 
-class _BigValue extends StatelessWidget {
-  const _BigValue(this.text, {required this.level, required this.locked, this.sub});
-  final String text;
-  final bool level, locked;
-  final String? sub;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final color = level ? Color.lerp(alertColor(), cs.onSurface, 0.25) : cs.onSurface;
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Row(mainAxisSize: MainAxisSize.min, children: [
-        if (locked) ...[Icon(Icons.lock, color: cs.primary, size: 28), const SizedBox(width: 8)],
-        Text(text,
-            style: TextStyle(
-                fontSize: 76,
-                height: 1,
-                fontWeight: FontWeight.w300,
-                color: color,
-                letterSpacing: -1.5,
-                fontFeatures: const [FontFeature.tabularFigures()])),
-      ]),
-      if (sub != null) ...[
-        const SizedBox(height: 8),
-        Text(sub!, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: cs.onSurfaceVariant)),
-      ],
-    ]);
+(String, IconData) _direction(double angle, Mode mode) {
+  if (angle.abs() < 0.05) return (tr('La nivel', 'Level'), Icons.check_circle_outline);
+  if (mode == Mode.plumb) {
+    return angle > 0
+        ? (tr('Înclinat spre dreapta', 'Leaning right'), Icons.east)
+        : (tr('Înclinat spre stânga', 'Leaning left'), Icons.west);
   }
-}
-
-String _direction(double angle, Mode mode) {
-  if (angle.abs() < 0.05) return tr('La nivel', 'Level');
-  if (mode == Mode.plumb) return angle > 0 ? tr('Înclinat spre dreapta', 'Leaning right') : tr('Înclinat spre stânga', 'Leaning left');
-  return angle > 0 ? tr('Ridică partea dreaptă', 'Raise the right side') : tr('Ridică partea stângă', 'Raise the left side');
+  return angle > 0
+      ? (tr('Ridică partea dreaptă', 'Raise the right side'), Icons.north_east)
+      : (tr('Ridică partea stângă', 'Raise the left side'), Icons.north_west);
 }
 
 class _LevelView extends StatelessWidget {
-  const _LevelView({required this.reading, required this.level, required this.locked});
+  const _LevelView({required this.meter, required this.reading, required this.level});
+  final Meter meter;
   final Reading reading;
-  final bool level, locked;
+  final bool level;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final ok = reading.positionOk || locked;
-    return Stack(fit: StackFit.expand, children: [
-      CustomPaint(
-          painter: LevelPainter(angle: ok ? reading.angle : 0, level: level, cs: cs, alert: alertColor(), tolerance: store.tolerance)),
-      Align(
-        alignment: const Alignment(0, -0.52),
-        child: _BigValue(ok ? fmt(reading.angle, abs: true) : '—', level: level, locked: locked,
-            sub: ok ? _direction(reading.angle, Mode.level) : tr('Pune telefonul pe o muchie', 'Stand the phone on an edge')),
-      ),
-    ]);
+    final ok = reading.positionOk || meter.locked;
+    final target = ok ? reading.angle : 0.0;
+    final shown = meter.stable('level', target);
+    final (dirText, dirIcon) = _direction(shown, Mode.level);
+    return LayoutBuilder(builder: (context, box) {
+      final size = box.biggest;
+      final c = LevelPainter.center(size), rad = LevelPainter.radius(size);
+      return Stack(fit: StackFit.expand, children: [
+        Smoothed(
+          values: [target],
+          builder: (context, v) => CustomPaint(
+              painter: LevelPainter(angle: v[0], level: level, cs: cs, alert: alertColor(), tolerance: store.tolerance)),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: c.dy - rad * 0.72,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Readout(shown, level: level, dash: !ok, size: rad < 140 ? 64 : 80),
+            const SizedBox(height: 10),
+            Caption(ok ? dirText : tr('Pune telefonul pe o muchie', 'Stand the phone on an edge'),
+                icon: ok ? (meter.locked ? Icons.lock : dirIcon) : Icons.smartphone),
+          ]),
+        ),
+      ]);
+    });
   }
 }
 
 class _PlumbView extends StatelessWidget {
-  const _PlumbView({required this.reading, required this.level, required this.locked});
+  const _PlumbView({required this.meter, required this.reading, required this.level});
+  final Meter meter;
   final Reading reading;
-  final bool level, locked;
+  final bool level;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final left = reading.contact == reading.edge.displayLeft;
-    final ok = reading.positionOk || locked;
+    final ok = reading.positionOk || meter.locked;
+    final target = ok ? reading.angle : 0.0;
+    final shown = meter.stable('plumb', target);
+    final (dirText, dirIcon) = _direction(shown, Mode.plumb);
     return Stack(fit: StackFit.expand, children: [
-      CustomPaint(
-          painter: PlumbPainter(angle: ok ? reading.angle : 0, level: level, cs: cs, alert: alertColor(), contactLeft: left)),
+      Smoothed(
+        values: [target],
+        builder: (context, v) => CustomPaint(
+            painter: PlumbPainter(angle: v[0], level: level, cs: cs, alert: alertColor(), contactLeft: left)),
+      ),
       Align(
-        alignment: const Alignment(0, 0.96),
-        child: _BigValue(ok ? fmt(reading.angle, abs: true) : '—', level: level, locked: locked,
-            sub: ok ? _direction(reading.angle, Mode.plumb) : tr('Sprijină muchia pe perete', 'Hold the edge against the wall')),
+        alignment: const Alignment(0, 0.92),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Readout(shown, level: level, dash: !ok, size: 72),
+          const SizedBox(height: 8),
+          Caption(ok ? dirText : tr('Sprijină muchia pe perete', 'Hold the edge against the wall'),
+              icon: ok ? (meter.locked ? Icons.lock : dirIcon) : Icons.smartphone),
+        ]),
       ),
     ]);
   }
 }
 
 class _FlatView extends StatelessWidget {
-  const _FlatView({required this.reading, required this.level, required this.locked});
+  const _FlatView({required this.meter, required this.reading, required this.level});
+  final Meter meter;
   final Reading reading;
-  final bool level, locked;
+  final bool level;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final ok = reading.positionOk || locked;
+    final ok = reading.positionOk || meter.locked;
     final t = ok ? (reading.flat ?? const FlatTilt(0, 0)) : const FlatTilt(0, 0);
+    final total = meter.stable('flat', t.total), sx = meter.stable('fx', t.x), sy = meter.stable('fy', t.y);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       child: Column(children: [
-        const SizedBox(height: 8),
-        _BigValue(ok ? fmt(t.total) : '—', level: level, locked: locked,
-            sub: ok ? tr('Înclinare totală', 'Total tilt') : tr('Așază telefonul culcat', 'Lay the phone down')),
-        const SizedBox(height: 12),
+        Readout(total, level: level, dash: !ok, abs: false, size: 64),
+        const SizedBox(height: 6),
+        Text(ok ? tr('Înclinare totală', 'Total tilt') : tr('Așază telefonul culcat', 'Lay the phone down'),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+        const SizedBox(height: 10),
         Expanded(
           child: Center(
             child: AspectRatio(
               aspectRatio: 1,
-              child: CustomPaint(
-                  painter: FlatPainter(tilt: t, level: level, cs: cs, alert: alertColor(), tolerance: store.tolerance)),
+              child: Smoothed(
+                values: [t.x, t.y],
+                builder: (context, v) => CustomPaint(
+                    painter: FlatPainter(tilt: FlatTilt(v[0], v[1]), level: level, cs: cs, alert: alertColor(), tolerance: store.tolerance)),
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(16),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: _AxisTile(label: tr('Stânga ↔ dreapta', 'Left ↔ right'), axis: 'X', value: sx, ok: ok)),
+          const SizedBox(width: 10),
+          Expanded(child: _AxisTile(label: tr('Sus ↕ jos', 'Top ↕ bottom'), axis: 'Y', value: sy, ok: ok)),
+        ]),
+      ]),
+    );
+  }
+}
+
+class _AxisTile extends StatelessWidget {
+  const _AxisTile({required this.label, required this.axis, required this.value, required this.ok});
+  final String label, axis;
+  final double value;
+  final bool ok;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final frac = (value.abs() / 5).clamp(0.0, 1.0);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(color: cs.surfaceContainerHighest.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(16)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 20,
+            height: 20,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(6)),
+            child: Text(axis, style: TextStyle(color: cs.onPrimary, fontSize: 11.5, fontWeight: FontWeight.w800)),
           ),
-          child: Row(children: [
-            Expanded(child: InfoRow(tr('Stânga – dreapta (X)', 'Left – right (X)'), ok ? fmt(t.x, signed: true) : '—', last: true)),
-            Container(width: 1, height: 26, margin: const EdgeInsets.symmetric(horizontal: 12), color: cs.outlineVariant),
-            Expanded(child: InfoRow(tr('Sus – jos (Y)', 'Top – bottom (Y)'), ok ? fmt(t.y, signed: true) : '—', last: true)),
-          ]),
-        ),
-        const SizedBox(height: 4),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Text(label,
+                  maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant))),
+        ]),
+        const SizedBox(height: 6),
+        Text(ok ? fmt(value, signed: true) : '—',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, fontFeatures: [FontFeature.tabularFigures()])),
+        const SizedBox(height: 6),
+        LayoutBuilder(builder: (context, b) {
+          return Stack(children: [
+            Container(height: 4, decoration: BoxDecoration(color: cs.outlineVariant, borderRadius: BorderRadius.circular(2))),
+            Positioned(
+              left: value >= 0 ? b.maxWidth / 2 : b.maxWidth / 2 * (1 - frac),
+              width: b.maxWidth / 2 * frac,
+              child: Container(height: 4, decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(2))),
+            ),
+            Positioned(left: b.maxWidth / 2 - 1, child: Container(width: 2, height: 4, color: cs.onSurface)),
+          ]);
+        }),
       ]),
     );
   }

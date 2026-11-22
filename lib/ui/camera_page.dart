@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../services/meter.dart';
 import '../services/sensor.dart';
 import '../services/store.dart';
+import 'instrument.dart';
 import 'painters.dart';
 import 'widgets.dart';
 
@@ -189,9 +190,11 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
               child: RotatedBox(
                 quarterTurns: r.edge.quarterTurns,
                 child: Stack(fit: StackFit.expand, children: [
-                  CustomPaint(
+                  Smoothed(
+                    values: [r.angle],
+                    builder: (context, v) => CustomPaint(
                     painter: CameraGuidesPainter(
-                      angle: r.angle,
+                      angle: v[0],
                       level: level,
                       alert: alertColor(),
                       grid: store.grid,
@@ -201,14 +204,15 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                       opacity: store.guideOpacity,
                     ),
                   ),
+                  ),
                   SafeArea(
                     child: Align(
                       alignment: Alignment.topCenter,
                       child: Padding(
                         padding: const EdgeInsets.only(top: 14),
                         child: _Readout(
-                          angle: r.angle,
-                          forward: r.forward,
+                          angle: meter.stable('cam', r.angle),
+                          forward: meter.stable('fwd', r.forward),
                           level: level,
                           locked: meter.locked,
                         ),

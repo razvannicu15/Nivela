@@ -44,7 +44,7 @@ class Store extends ChangeNotifier {
   Edge levelEdge = Edge.bottom;
   bool plumbOnLeft = true;
   AutoLock autoLock = AutoLock.off;
-  double smoothing = 0.5;
+  double smoothing = 0.6;
 
   Mode lastMode = Mode.level;
 
@@ -111,7 +111,7 @@ class Store extends ChangeNotifier {
     levelEdge = _enum(Edge.values, s['edge'], Edge.bottom);
     plumbOnLeft = s['plumbLeft'] ?? true;
     autoLock = _enum(AutoLock.values, s['autoLock'], AutoLock.off);
-    smoothing = (s['smooth'] as num?)?.toDouble() ?? 0.5;
+    smoothing = (s['smooth'] as num?)?.toDouble() ?? 0.6;
     lastMode = _enum(Mode.values, s['mode'], Mode.level);
     grid = s['grid'] ?? 3;
     horizon = s['horizon'] ?? true;

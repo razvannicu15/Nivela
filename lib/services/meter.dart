@@ -119,6 +119,17 @@ class Meter extends ChangeNotifier {
   Reading get live => compute(Sensor.instance.value, _mode,
       zeroAngle: _zeroAngle[_mode], zeroFlat: _zeroFlat[_mode], sticky: _sticky);
 
+  final Map<String, double> _shown = {};
+
+  /// Displayed value with hysteresis: it only changes when the reading moves
+  /// by most of one displayed step, so the last digit does not flicker.
+  double stable(String key, double v) {
+    final step = switch (store.decimals) { 0 => 1.0, 1 => 0.1, _ => 0.01 };
+    final old = _shown[key];
+    if (old == null || (v - old).abs() >= step * 0.8 || locked) _shown[key] = v;
+    return _shown[key]!;
+  }
+
   bool isLevel(Reading r) => r.positionOk && r.primary.abs() <= store.tolerance;
 
   void start() {
