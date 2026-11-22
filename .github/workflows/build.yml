@@ -1,0 +1,93 @@
+name: Build Nivela
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  REPO: ${{ github.repository }}
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate platform files
+        run: flutter create --platforms=android --org ro.noraz --project-name nivela .
+
+      - run: flutter pub get
+
+      - name: Patch manifest / gradle / native code
+        run: dart run tool/patch_platforms.dart
+
+      - name: App icons
+        run: dart run flutter_launcher_icons
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Unit tests
+        run: flutter test
+
+      # Real renders of every screen (light/dark, RO/EN) for visual review.
+      - name: Screenshots
+        continue-on-error: true
+        run: |
+          sudo apt-get install -y -qq fonts-roboto >/dev/null 2>&1 || true
+          SCREEN_FONTS=/usr/share/fonts flutter test --update-goldens test/screens_test.dart
+          ls test/screens
+
+      - name: Publish screenshots
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        run: |
+          gh release view screens -R "$REPO" >/dev/null 2>&1 || \
+            gh release create screens -R "$REPO" --prerelease --title "Capturi ecran" --notes "Generate automat de CI."
+          gh release upload screens test/screens/*.png -R "$REPO" --clobber
+
+      - name: Build APK
+        run: |
+          BUILD=$((100 + GITHUB_RUN_NUMBER))
+          BUILT=$(TZ=Europe/Bucharest date +'%d.%m %H:%M')
+          flutter build apk --release --target-platform android-arm64 --build-number=$BUILD --build-name=0.1.$BUILD \
+            --dart-define=BUILD=$BUILD --dart-define="BUILT=$BUILT"
+          cp build/app/outputs/flutter-apk/app-release.apk Nivela-android.apk
+
+      - name: Publish release
+        if: github.event_name != 'pull_request'
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="$GITHUB_REF_NAME"
+            gh release view "$TAG" -R "$REPO" >/dev/null 2>&1 || \
+              gh release create "$TAG" -R "$REPO" --title "Nivela $TAG" --generate-notes
+          else
+            TAG=latest
+            gh release view latest -R "$REPO" >/dev/null 2>&1 || \
+              gh release create latest -R "$REPO" --target "$GITHUB_SHA" --latest \
+                --title "Nivela - ultima versiune" --notes "Build automat."
+            gh release edit latest -R "$REPO" --notes "Versiunea 0.1.$((100 + GITHUB_RUN_NUMBER)) din $(TZ=Europe/Bucharest date +'%d.%m.%Y %H:%M') (commit ${GITHUB_SHA::7}). Versiunea apare in Setari > Despre."
+          fi
+          gh release upload "$TAG" Nivela-android.apk -R "$REPO" --clobber

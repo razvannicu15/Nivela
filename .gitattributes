@@ -1,0 +1,4 @@
+*.bat -text
+*.keystore binary
+*.gz binary
+*.png binary
