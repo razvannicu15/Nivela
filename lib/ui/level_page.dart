@@ -93,14 +93,61 @@ class _LevelPageState extends State<LevelPage> {
             title: Text(tr('Nivelă', 'Level')),
             actions: [
               if (meter.mode != Mode.flat) _EdgeMenu(meter: meter),
-              IconButton(
-                tooltip: tr('Calibrare', 'Calibration'),
+              PopupMenuButton<String>(
+                tooltip: tr('Mai multe', 'More'),
+                onSelected: (v) {
+                  switch (v) {
+                    case 'lock':
+                      meter.lockPressed();
+                    case 'zero':
+                      meter.toggleRelative();
+                    case 'save':
+                      _save();
+                    case 'cal':
+                      _calibrate(store.profile.has(r.face) ? null : r.face);
+                  }
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'lock',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(meter.lockState == MeterLock.live ? Icons.lock_outline : Icons.lock_open),
+                      title: Text(meter.lockState == MeterLock.live ? tr('Blochează citirea', 'Lock reading') : tr('Deblochează', 'Unlock')),
+                      subtitle: meter.lockState == MeterLock.live ? Text(tr('sau apasă lung pe nivelă', 'or long-press the level')) : null,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'zero',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.exposure_zero),
+                      title: Text(meter.relative ? tr('Revino la absolut', 'Back to absolute') : tr('Zero aici (relativ)', 'Zero here (relative)')),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'save',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.bookmark_add_outlined),
+                      title: Text(tr('Salvează măsurarea', 'Save measurement')),
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'cal',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Badge(isLabelVisible: !store.profile.has(r.face), smallSize: 8, child: const Icon(Icons.tune)),
+                      title: Text(tr('Calibrare', 'Calibration')),
+                    ),
+                  ),
+                ],
                 icon: Badge(
                   isLabelVisible: !store.profile.has(r.face) || Sensor.instance.lowAccuracy,
                   smallSize: 9,
-                  child: const Icon(Icons.tune),
+                  child: const Icon(Icons.more_vert),
                 ),
-                onPressed: () => _calibrate(store.profile.has(r.face) ? null : r.face),
               ),
             ],
           ),
@@ -125,67 +172,10 @@ class _LevelPageState extends State<LevelPage> {
             ),
             if (!r.positionOk && !meter.locked && (meter.mode == Mode.plumb || !store.autoMode))
               _PositionHint(mode: meter.mode, onSwitch: _setMode),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              child: Row(children: [
-                _SideButton(
-                  icon: Icons.exposure_zero,
-                  label: meter.relative ? tr('Absolut', 'Absolute') : tr('Zero', 'Zero'),
-                  selected: meter.relative,
-                  onTap: meter.toggleRelative,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52), shape: const StadiumBorder()),
-                    onPressed: meter.lockPressed,
-                    icon: Icon(switch (meter.lockState) {
-                      MeterLock.locked => Icons.lock,
-                      MeterLock.live => Icons.lock_open,
-                      _ => Icons.timer_outlined,
-                    }),
-                    label: Text(switch (meter.lockState) {
-                      MeterLock.locked => tr('Deblochează', 'Unlock'),
-                      MeterLock.armedStill => tr('Ține nemișcat…', 'Hold still…'),
-                      MeterLock.countdown => tr('Blochez în ${meter.secondsLeft} s', 'Locking in ${meter.secondsLeft} s'),
-                      MeterLock.live => tr('Blochează', 'Lock'),
-                    }),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                _SideButton(icon: Icons.bookmark_add_outlined, label: tr('Salvează', 'Save'), onTap: _save),
-              ]),
-            ),
+            const SizedBox(height: 16),
           ]),
         );
       },
-    );
-  }
-}
-
-class _SideButton extends StatelessWidget {
-  const _SideButton({required this.icon, required this.label, required this.onTap, this.selected = false});
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Tooltip(
-      message: label,
-      child: FilledButton.tonal(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(64, 52),
-          shape: const StadiumBorder(),
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          backgroundColor: selected ? cs.tertiaryContainer : null,
-          foregroundColor: selected ? cs.onTertiaryContainer : null,
-        ),
-        onPressed: onTap,
-        child: Icon(icon),
-      ),
     );
   }
 }
@@ -242,7 +232,7 @@ class _HeroCard extends StatelessWidget {
     final bg = Color.alphaBlend((level ? alertColor().withValues(alpha: 0.16) : cs.primaryContainer.withValues(alpha: 0.55)), cs.surface);
     final card = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onLongPress: meter.toggleLock,
+      onLongPress: meter.lockPressed,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(28)),
@@ -264,9 +254,21 @@ class _HeroCard extends StatelessWidget {
     final target = mode == Mode.flat ? flat.total : (ok ? reading.angle : 0.0);
     final shown = meter.stable(mode.name, target);
 
-    final value = Row(mainAxisSize: MainAxisSize.min, children: [
-      if (meter.locked) ...[Icon(Icons.lock, color: cs.primary, size: 26), const SizedBox(width: 8)],
-      Readout(shown, dash: !ok, abs: true, size: mode == Mode.level ? 64 : 52, color: level ? accent : cs.onSurface),
+    final status = switch (meter.lockState) {
+      MeterLock.armedStill => tr('Ține nemișcat…', 'Hold still…'),
+      MeterLock.countdown => tr('Blochez în ${meter.secondsLeft} s', 'Locking in ${meter.secondsLeft} s'),
+      MeterLock.locked => tr('Blocat · apasă lung ca să deblochezi', 'Locked · long-press to unlock'),
+      MeterLock.live => meter.relative ? tr('Relativ la zero', 'Relative to zero') : null,
+    };
+    final value = Column(mainAxisSize: MainAxisSize.min, children: [
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        if (meter.locked) ...[Icon(Icons.lock, color: cs.primary, size: 26), const SizedBox(width: 8)],
+        Readout(shown, dash: !ok, abs: true, size: mode == Mode.level ? 64 : 52, color: level ? accent : cs.onSurface),
+      ]),
+      if (status != null) ...[
+        const SizedBox(height: 6),
+        Text(status, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.primary)),
+      ],
     ]);
 
     return LayoutBuilder(builder: (context, box) {
