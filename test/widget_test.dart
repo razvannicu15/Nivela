@@ -15,6 +15,6 @@ void main() {
     expect(find.text('Nivel'), findsWidgets);
     await t.tap(find.text('Setări'));
     await t.pump(const Duration(milliseconds: 100));
-    expect(find.text('Calibrare ghidată'), findsOneWidget);
+    expect(find.text('Limbă'), findsOneWidget);
   });
 }
