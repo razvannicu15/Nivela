@@ -276,12 +276,14 @@ class _LevelView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final ok = reading.positionOk || locked;
     return Stack(fit: StackFit.expand, children: [
       CustomPaint(
-          painter: LevelPainter(angle: reading.angle, level: level, cs: cs, alert: alertColor(), tolerance: store.tolerance)),
+          painter: LevelPainter(angle: ok ? reading.angle : 0, level: level, cs: cs, alert: alertColor(), tolerance: store.tolerance)),
       Align(
         alignment: const Alignment(0, -0.52),
-        child: _BigValue(fmt(reading.angle, abs: true), level: level, locked: locked, sub: _direction(reading.angle, Mode.level)),
+        child: _BigValue(ok ? fmt(reading.angle, abs: true) : '—', level: level, locked: locked,
+            sub: ok ? _direction(reading.angle, Mode.level) : tr('Pune telefonul pe o muchie', 'Stand the phone on an edge')),
       ),
     ]);
   }
@@ -296,12 +298,14 @@ class _PlumbView extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final left = reading.contact == reading.edge.displayLeft;
+    final ok = reading.positionOk || locked;
     return Stack(fit: StackFit.expand, children: [
       CustomPaint(
-          painter: PlumbPainter(angle: reading.angle, level: level, cs: cs, alert: alertColor(), contactLeft: left)),
+          painter: PlumbPainter(angle: ok ? reading.angle : 0, level: level, cs: cs, alert: alertColor(), contactLeft: left)),
       Align(
         alignment: const Alignment(0, 0.96),
-        child: _BigValue(fmt(reading.angle, abs: true), level: level, locked: locked, sub: _direction(reading.angle, Mode.plumb)),
+        child: _BigValue(ok ? fmt(reading.angle, abs: true) : '—', level: level, locked: locked,
+            sub: ok ? _direction(reading.angle, Mode.plumb) : tr('Sprijină muchia pe perete', 'Hold the edge against the wall')),
       ),
     ]);
   }
@@ -315,12 +319,14 @@ class _FlatView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final t = reading.flat ?? const FlatTilt(0, 0);
+    final ok = reading.positionOk || locked;
+    final t = ok ? (reading.flat ?? const FlatTilt(0, 0)) : const FlatTilt(0, 0);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(children: [
         const SizedBox(height: 8),
-        _BigValue(fmt(t.total), level: level, locked: locked, sub: tr('Înclinare totală', 'Total tilt')),
+        _BigValue(ok ? fmt(t.total) : '—', level: level, locked: locked,
+            sub: ok ? tr('Înclinare totală', 'Total tilt') : tr('Așază telefonul culcat', 'Lay the phone down')),
         const SizedBox(height: 12),
         Expanded(
           child: Center(
@@ -339,9 +345,9 @@ class _FlatView extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(children: [
-            Expanded(child: InfoRow(tr('Stânga – dreapta (X)', 'Left – right (X)'), fmt(t.x, signed: true), last: true)),
+            Expanded(child: InfoRow(tr('Stânga – dreapta (X)', 'Left – right (X)'), ok ? fmt(t.x, signed: true) : '—', last: true)),
             Container(width: 1, height: 26, margin: const EdgeInsets.symmetric(horizontal: 12), color: cs.outlineVariant),
-            Expanded(child: InfoRow(tr('Sus – jos (Y)', 'Top – bottom (Y)'), fmt(t.y, signed: true), last: true)),
+            Expanded(child: InfoRow(tr('Sus – jos (Y)', 'Top – bottom (Y)'), ok ? fmt(t.y, signed: true) : '—', last: true)),
           ]),
         ),
         const SizedBox(height: 4),

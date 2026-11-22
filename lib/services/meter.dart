@@ -141,7 +141,7 @@ class Meter extends ChangeNotifier {
   void _tick() {
     if (!Sensor.instance.hasData) return;
     final r = live;
-    if (r.mode != Mode.flat) _sticky = r.edge;
+    if (r.mode != Mode.flat && r.positionOk) _sticky = r.edge;
     final now = DateTime.now();
 
     if (lockState == MeterLock.armedStill) {

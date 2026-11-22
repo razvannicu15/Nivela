@@ -152,7 +152,7 @@ class PlumbPainter extends CustomPainter {
         final major = d == 0 || d == 5 || d == 10;
         canvas.drawLine(pivot + dir * (arcR + 10), pivot + dir * (arcR + (major ? 26 : 19)), tick);
         if (d >= 5) {
-          tp.text = TextSpan(text: '${d.toInt()}°', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11));
+          tp.text = TextSpan(text: '${d.toInt()}°', style: TextStyle(fontFamily: 'Roboto', color: cs.onSurfaceVariant, fontSize: 11));
           tp.layout();
           final p = pivot + dir * (arcR + 38);
           tp.paint(canvas, p - Offset(tp.width / 2, tp.height / 2));
@@ -240,7 +240,7 @@ class FlatPainter extends CustomPainter {
     for (final d in [1.0, 2.0, 5.0, 10.0]) {
       final rr = bubbleOffset(d, scale: _scale) * travel;
       canvas.drawCircle(c, rr, ring);
-      tp.text = TextSpan(text: '${d.toInt()}°', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10.5));
+      tp.text = TextSpan(text: '${d.toInt()}°', style: TextStyle(fontFamily: 'Roboto', color: cs.onSurfaceVariant, fontSize: 10.5));
       tp.layout();
       tp.paint(canvas, c + Offset(rr * 0.71 + 3, -rr * 0.71 - tp.height));
     }
